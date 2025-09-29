@@ -1,0 +1,44 @@
+name: cpf_portal
+description: NGO Registration Portal with Firebase Integration
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Firebase
+  firebase_core: ^4.1.1
+  firebase_auth: ^6.1.0
+  cloud_firestore: ^6.0.2
+  firebase_storage: ^13.0.2
+  
+  # State Management
+  provider: ^6.1.1
+  
+  # UI
+  cupertino_icons: ^1.0.2
+  google_fonts: ^6.1.0
+  
+  # File Handling
+  file_picker: ^10.2.0
+  image_picker: ^1.0.4
+  
+  # Utilities
+  intl: ^0.20.2
+  uuid: ^4.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - lib/assets/assets/
+    - lib/assets/assets/images/

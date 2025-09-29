@@ -1,0 +1,243 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+enum UserRole { ngo, admin }
+
+class AuthProvider with ChangeNotifier {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
+  User? _user;
+  UserRole? _userRole;
+  bool _isLoading = false;
+  String? _error;
+  bool? _profileComplete;
+
+  // Getters
+  User? get user => _user;
+  UserRole? get userRole => _userRole;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
+  bool get isLoggedIn => _user != null;
+  bool? get profileComplete => _profileComplete;
+
+  // Admin credentials (hardcoded for security)
+  static const String adminEmail = 'admin@cpf.org.in';
+  static const String adminPassword = 'CPFAdmin2024!';
+
+  AuthProvider() {
+    _auth.authStateChanges().listen(_onAuthStateChanged);
+  }
+
+  void _onAuthStateChanged(User? user) async {
+    _user = user;
+    if (user != null) {
+      await _determineUserRole();
+      await _checkProfileCompletion();
+    } else {
+      _userRole = null;
+      _profileComplete = null;
+    }
+    notifyListeners();
+  }
+
+  Future<void> _determineUserRole() async {
+    if (_user?.email == adminEmail) {
+      _userRole = UserRole.admin;
+    } else {
+      _userRole = UserRole.ngo;
+    }
+  }
+
+  Future<void> _checkProfileCompletion() async {
+    if (_user == null || _userRole == UserRole.admin) {
+      _profileComplete = true;
+      return;
+    }
+    
+    try {
+      final doc = await _firestore
+          .collection('ngo_proposals')
+          .doc(_user!.uid)
+          .get();
+          
+      if (doc.exists) {
+        _profileComplete = doc.data()?['profileComplete'] ?? false;
+      } else {
+        _profileComplete = false;
+      }
+    } catch (e) {
+      print('Error checking profile completion: $e');
+      _profileComplete = false;
+    }
+  }
+
+  void _setLoading(bool loading) {
+    _isLoading = loading;
+    notifyListeners();
+  }
+
+  void _setError(String? error) {
+    _error = error;
+    notifyListeners();
+  }
+
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
+
+  // Check if profile is complete
+  Future<bool> isProfileComplete() async {
+    if (_user == null) return false;
+    if (_userRole == UserRole.admin) return true;
+    
+    try {
+      final doc = await _firestore
+          .collection('ngo_proposals')
+          .doc(_user!.uid)
+          .get();
+          
+      if (doc.exists) {
+        return doc.data()?['profileComplete'] ?? false;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // NGO Registration with Firebase Auth (REMOVED - not needed with new flow)
+  // Now registration is handled directly in NGORegistrationPage
+
+  // NGO Login
+  Future<bool> loginNGO({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      _setLoading(true);
+      _setError(null);
+
+      await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Check profile completion after login
+      await _checkProfileCompletion();
+
+      _setLoading(false);
+      return true;
+    } on FirebaseAuthException catch (e) {
+      _setLoading(false);
+      _setError(_getAuthErrorMessage(e.code));
+      return false;
+    } catch (e) {
+      _setLoading(false);
+      _setError('Login failed. Please try again.');
+      return false;
+    }
+  }
+
+  // Admin Login
+  Future<bool> loginAdmin({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      _setLoading(true);
+      _setError(null);
+
+      // Verify admin credentials
+      if (email != adminEmail || password != adminPassword) {
+        _setError('Invalid admin credentials');
+        _setLoading(false);
+        return false;
+      }
+
+      // Sign in with Firebase Auth
+      await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      _setLoading(false);
+      return true;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found') {
+        // Create admin user if doesn't exist
+        try {
+          await _auth.createUserWithEmailAndPassword(
+            email: adminEmail,
+            password: adminPassword,
+          );
+          _setLoading(false);
+          return true;
+        } catch (createError) {
+          _setError('Failed to create admin account');
+          _setLoading(false);
+          return false;
+        }
+      } else {
+        _setLoading(false);
+        _setError(_getAuthErrorMessage(e.code));
+        return false;
+      }
+    } catch (e) {
+      _setLoading(false);
+      _setError('Admin login failed. Please try again.');
+      return false;
+    }
+  }
+
+  // Logout
+  Future<void> logout() async {
+    await _auth.signOut();
+    _userRole = null;
+    _error = null;
+    _profileComplete = null;
+    notifyListeners();
+  }
+
+  // Password Reset
+  Future<bool> resetPassword(String email) async {
+    try {
+      _setLoading(true);
+      _setError(null);
+
+      await _auth.sendPasswordResetEmail(email: email);
+      
+      _setLoading(false);
+      return true;
+    } on FirebaseAuthException catch (e) {
+      _setLoading(false);
+      _setError(_getAuthErrorMessage(e.code));
+      return false;
+    } catch (e) {
+      _setLoading(false);
+      _setError('Failed to send password reset email.');
+      return false;
+    }
+  }
+
+  String _getAuthErrorMessage(String code) {
+    switch (code) {
+      case 'weak-password':
+        return 'The password provided is too weak.';
+      case 'email-already-in-use':
+        return 'An account already exists for this email.';
+      case 'user-not-found':
+        return 'No user found for this email.';
+      case 'wrong-password':
+        return 'Wrong password provided.';
+      case 'invalid-email':
+        return 'The email address is not valid.';
+      case 'too-many-requests':
+        return 'Too many failed attempts. Please try again later.';
+      default:
+        return 'An error occurred. Please try again.';
+    }
+  }
+}
