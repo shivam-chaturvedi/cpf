@@ -8,6 +8,9 @@ import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/custome_card.dart';
 import '../widgets/loading_widget.dart';
+import '../widgets/custom_navbar.dart';
+import '../services/certificate_service.dart';
+import '../services/donor_ngo_service.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -20,6 +23,7 @@ class _AdminDashboardState extends State<AdminDashboard>
     with TickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _donorSearchController = TextEditingController();
   final TextEditingController _adminCommentsController =
       TextEditingController();
 
@@ -33,6 +37,7 @@ class _AdminDashboardState extends State<AdminDashboard>
   // Data states
   List<Map<String, dynamic>> _filteredNGOs = [];
   List<Map<String, dynamic>> _allDonors = [];
+  List<Map<String, dynamic>> _filteredDonors = [];
   List<Map<String, dynamic>> _renewalAlerts = [];
   Map<String, dynamic> _validationStats = {};
   Map<String, int> _donorStats = {};
@@ -42,7 +47,7 @@ class _AdminDashboardState extends State<AdminDashboard>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 8, vsync: this);
     _loadData();
   }
 
@@ -50,6 +55,7 @@ class _AdminDashboardState extends State<AdminDashboard>
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
+    _donorSearchController.dispose();
     _adminCommentsController.dispose();
     super.dispose();
   }
@@ -75,6 +81,7 @@ class _AdminDashboardState extends State<AdminDashboard>
 
       // Load donors
       _allDonors = await authProvider.getAllDonors();
+      _filteredDonors = List.from(_allDonors);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error loading data: $e')),
@@ -100,44 +107,75 @@ class _AdminDashboardState extends State<AdminDashboard>
     setState(() {});
   }
 
+  void _filterDonors() {
+    setState(() {
+      _filteredDonors = _allDonors.where((donor) {
+        final searchQuery = _donorSearchController.text.toLowerCase();
+        if (searchQuery.isEmpty) return true;
+
+        final name =
+            (donor['name'] ?? donor['fullName'] ?? '').toString().toLowerCase();
+        final email = (donor['email'] ?? '').toString().toLowerCase();
+        final phone = (donor['phone'] ?? '').toString().toLowerCase();
+
+        return name.contains(searchQuery) ||
+            email.contains(searchQuery) ||
+            phone.contains(searchQuery);
+      }).toList();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundGray,
-      appBar: AppBar(
-        title: const Text('Admin Dashboard'),
-        backgroundColor: AppTheme.primaryRed,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(text: 'Overview', icon: Icon(Icons.dashboard)),
-            Tab(
-                text: 'Validation Tracker',
-                icon: Icon(Icons.assignment_turned_in)),
-            Tab(text: 'NGO Management', icon: Icon(Icons.business)),
-            Tab(text: 'Donor Approval', icon: Icon(Icons.people)),
-            Tab(text: 'Renewal Alerts', icon: Icon(Icons.schedule)),
-            Tab(text: 'Analytics', icon: Icon(Icons.analytics)),
-          ],
-        ),
+      appBar: DashboardNavbar(
+        title: 'Admin Dashboard',
+        userType: 'admin',
+        onLogout: () => _logout(context),
+        onRefresh: _loadData,
       ),
       body: _isLoading
           ? const LoadingWidget()
-          : TabBarView(
-              controller: _tabController,
+          : Column(
               children: [
-                _buildOverviewTab(),
-                _buildValidationTrackerTab(),
-                _buildNGOManagementTab(),
-                _buildDonorApprovalTab(),
-                _buildRenewalAlertsTab(),
-                _buildAnalyticsTab(),
+                Container(
+                  color: AppTheme.primaryRed,
+                  child: TabBar(
+                    controller: _tabController,
+                    isScrollable: true,
+                    indicatorColor: Colors.white,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.white70,
+                    tabs: const [
+                      Tab(text: 'Overview', icon: Icon(Icons.dashboard)),
+                      Tab(
+                          text: 'Validation Tracker',
+                          icon: Icon(Icons.assignment_turned_in)),
+                      Tab(text: 'NGO Management', icon: Icon(Icons.business)),
+                      Tab(text: 'Donor Approval', icon: Icon(Icons.people)),
+                      Tab(text: 'Renewal Alerts', icon: Icon(Icons.schedule)),
+                      Tab(text: 'Analytics', icon: Icon(Icons.analytics)),
+                      Tab(text: 'Donor-NGO Assignment', icon: Icon(Icons.link)),
+                      Tab(text: 'Certificates', icon: Icon(Icons.verified)),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildOverviewTab(),
+                      _buildValidationTrackerTab(),
+                      _buildNGOManagementTab(),
+                      _buildDonorApprovalTab(),
+                      _buildRenewalAlertsTab(),
+                      _buildAnalyticsTab(),
+                      _buildDonorNGOAssignmentTab(),
+                      _buildCertificatesTab(),
+                    ],
+                  ),
+                ),
               ],
             ),
     );
@@ -311,10 +349,21 @@ class _AdminDashboardState extends State<AdminDashboard>
 
           // Donor List
           Text(
-            'Donor Applications (${_allDonors.length})',
+            'Donor Applications (${_filteredDonors.length})',
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 16),
+
+          // Search Field
+          CustomTextField(
+            controller: _donorSearchController,
+            label: '',
+            hint: 'Search Donors...',
+            icon: Icons.search,
+            onChanged: (value) => _filterDonors(),
+          ),
+          const SizedBox(height: 16),
+
           _buildDonorList(),
         ],
       ),
@@ -602,6 +651,12 @@ class _AdminDashboardState extends State<AdminDashboard>
   Widget _buildNGOItem(Map<String, dynamic> ngo, {bool showFollowUp = false}) {
     final status = ngo['status'] as String? ?? 'pending';
     final followUpStatus = ngo['followUpStatus'] as String? ?? '';
+    final organizationName =
+        ngo['organizationName'] ?? ngo['ngoName'] ?? 'Unknown NGO';
+    final email = ngo['email'] ?? 'No email provided';
+    final category = ngo['category'] ?? 'N/A';
+    final location = ngo['location'] ?? ngo['city'] ?? 'N/A';
+    final phone = ngo['phone'] ?? 'N/A';
 
     Color statusColor;
     switch (status.toLowerCase()) {
@@ -628,9 +683,23 @@ class _AdminDashboardState extends State<AdminDashboard>
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    ngo['organizationName'] ?? 'Unknown NGO',
-                    style: Theme.of(context).textTheme.titleLarge,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        organizationName,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        email,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                      ),
+                    ],
                   ),
                 ),
                 Container(
@@ -652,22 +721,38 @@ class _AdminDashboardState extends State<AdminDashboard>
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              ngo['email'] ?? '',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildInfoChip(Icons.category, 'Category', category),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child:
+                      _buildInfoChip(Icons.location_on, 'Location', location),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
-            Text(
-              'Category: ${ngo['category'] ?? 'N/A'}',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Location: ${ngo['location'] ?? 'N/A'}',
-              style: Theme.of(context).textTheme.bodyMedium,
+            Row(
+              children: [
+                Expanded(
+                  child: _buildInfoChip(Icons.phone, 'Phone', phone),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildInfoChip(
+                      Icons.calendar_today,
+                      'Applied',
+                      ngo['createdAt'] != null
+                          ? (ngo['createdAt'] as Timestamp)
+                              .toDate()
+                              .toString()
+                              .split(' ')[0]
+                          : 'N/A'),
+                ),
+              ],
             ),
             if (showFollowUp && followUpStatus.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -691,7 +776,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                 ),
               ),
             ],
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
@@ -699,17 +784,38 @@ class _AdminDashboardState extends State<AdminDashboard>
                     text: 'View Details',
                     onPressed: () => _showNGODetails(ngo),
                     backgroundColor: AppTheme.primaryRed,
+                    icon: Icons.visibility,
                   ),
                 ),
                 const SizedBox(width: 8),
-                if (status == 'pending' || status == 'under_review')
+                if (status == 'pending' || status == 'under_review') ...[
+                  Expanded(
+                    child: CustomButton(
+                      text: 'Approve',
+                      onPressed: () => _showApprovalDialog(ngo, 'approved'),
+                      backgroundColor: Colors.green,
+                      icon: Icons.check_circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: CustomButton(
+                      text: 'Reject',
+                      onPressed: () => _showApprovalDialog(ngo, 'rejected'),
+                      backgroundColor: Colors.red,
+                      icon: Icons.cancel,
+                    ),
+                  ),
+                ] else ...[
                   Expanded(
                     child: CustomButton(
                       text: 'Review',
                       onPressed: () => _showReviewDialog(ngo),
                       backgroundColor: AppTheme.primaryOrange,
+                      icon: Icons.edit,
                     ),
                   ),
+                ],
               ],
             ),
           ],
@@ -756,7 +862,7 @@ class _AdminDashboardState extends State<AdminDashboard>
   }
 
   Widget _buildDonorList() {
-    if (_allDonors.isEmpty) {
+    if (_filteredDonors.isEmpty) {
       return const Center(
         child: Text('No donors found'),
       );
@@ -765,9 +871,9 @@ class _AdminDashboardState extends State<AdminDashboard>
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: _allDonors.length,
+      itemCount: _filteredDonors.length,
       itemBuilder: (context, index) {
-        final donor = _allDonors[index];
+        final donor = _filteredDonors[index];
         return _buildDonorItem(donor);
       },
     );
@@ -775,6 +881,12 @@ class _AdminDashboardState extends State<AdminDashboard>
 
   Widget _buildDonorItem(Map<String, dynamic> donor) {
     final status = donor['status'] as String? ?? 'pending';
+    final name = donor['name'] ?? donor['fullName'] ?? 'Unknown Donor';
+    final email = donor['email'] ?? 'No email provided';
+    final phone = donor['phone'] ?? 'N/A';
+    final location = donor['location'] ?? donor['city'] ?? 'N/A';
+    final occupation = donor['occupation'] ?? 'N/A';
+    final collection = donor['collection'] ?? 'donors';
 
     Color statusColor;
     switch (status.toLowerCase()) {
@@ -783,6 +895,9 @@ class _AdminDashboardState extends State<AdminDashboard>
         break;
       case 'rejected':
         statusColor = Colors.red;
+        break;
+      case 'under_review':
+        statusColor = Colors.blue;
         break;
       default:
         statusColor = Colors.orange;
@@ -798,9 +913,23 @@ class _AdminDashboardState extends State<AdminDashboard>
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    donor['name'] ?? 'Unknown Donor',
-                    style: Theme.of(context).textTheme.titleLarge,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        email,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                      ),
+                    ],
                   ),
                 ),
                 Container(
@@ -822,19 +951,65 @@ class _AdminDashboardState extends State<AdminDashboard>
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              donor['email'] ?? '',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Phone: ${donor['phone'] ?? 'N/A'}',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
             const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildInfoChip(Icons.phone, 'Phone', phone),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child:
+                      _buildInfoChip(Icons.location_on, 'Location', location),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildInfoChip(Icons.work, 'Occupation', occupation),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildInfoChip(
+                      Icons.calendar_today,
+                      'Applied',
+                      donor['createdAt'] != null
+                          ? (donor['createdAt'] as Timestamp)
+                              .toDate()
+                              .toString()
+                              .split(' ')[0]
+                          : 'N/A'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: collection == 'donor_profiles'
+                    ? Colors.blue.withOpacity(0.1)
+                    : Colors.grey.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: collection == 'donor_profiles'
+                      ? Colors.blue
+                      : Colors.grey,
+                ),
+              ),
+              child: Text(
+                'Source: ${collection == 'donor_profiles' ? 'Donor Profiles' : 'Donors'}',
+                style: TextStyle(
+                  color: collection == 'donor_profiles'
+                      ? Colors.blue
+                      : Colors.grey,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
@@ -842,26 +1017,40 @@ class _AdminDashboardState extends State<AdminDashboard>
                     text: 'View Details',
                     onPressed: () => _showDonorDetails(donor),
                     backgroundColor: AppTheme.primaryRed,
+                    icon: Icons.visibility,
                   ),
                 ),
                 const SizedBox(width: 8),
-                if (status == 'pending')
+                if (status == 'pending' || status == 'under_review') ...[
                   Expanded(
                     child: CustomButton(
                       text: 'Approve',
-                      onPressed: () => _approveDonor(donor),
+                      onPressed: () =>
+                          _showDonorApprovalDialog(donor, 'approved'),
                       backgroundColor: Colors.green,
+                      icon: Icons.check_circle,
                     ),
                   ),
-                if (status == 'pending') const SizedBox(width: 8),
-                if (status == 'pending')
+                  const SizedBox(width: 8),
                   Expanded(
                     child: CustomButton(
                       text: 'Reject',
-                      onPressed: () => _rejectDonor(donor),
+                      onPressed: () =>
+                          _showDonorApprovalDialog(donor, 'rejected'),
                       backgroundColor: Colors.red,
+                      icon: Icons.cancel,
                     ),
                   ),
+                ] else ...[
+                  Expanded(
+                    child: CustomButton(
+                      text: 'Review',
+                      onPressed: () => _showDonorReviewDialog(donor),
+                      backgroundColor: AppTheme.primaryOrange,
+                      icon: Icons.edit,
+                    ),
+                  ),
+                ],
               ],
             ),
           ],
@@ -1252,46 +1441,257 @@ class _AdminDashboardState extends State<AdminDashboard>
     }
   }
 
-  Future<void> _approveDonor(Map<String, dynamic> donor) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+  Widget _buildInfoChip(IconData icon, String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.grey[600]),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-    final success = await authProvider.updateDonorStatus(
-      donorId: donor['id'],
-      status: 'approved',
-      adminComments: 'Approved by admin',
+  void _showApprovalDialog(Map<String, dynamic> ngo, String status) {
+    final TextEditingController commentsController = TextEditingController();
+    final bool isApproval = status == 'approved';
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isApproval ? 'Approve NGO' : 'Reject NGO'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+                'NGO: ${ngo['organizationName'] ?? ngo['ngoName'] ?? 'Unknown'}'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: commentsController,
+              decoration: InputDecoration(
+                labelText: isApproval
+                    ? 'Approval Comments (Optional)'
+                    : 'Rejection Reason',
+                hintText: isApproval
+                    ? 'Add any comments about this approval...'
+                    : 'Please provide a reason for rejection...',
+                border: const OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _updateNGOStatusNew(ngo, status, commentsController.text);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isApproval ? Colors.green : Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(isApproval ? 'Approve' : 'Reject'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateNGOStatusNew(
+      Map<String, dynamic> ngo, String status, String comments) async {
+    final ngoProvider = Provider.of<NGOProvider>(context, listen: false);
+    final success = await ngoProvider.updateNGOStatus(
+      ngoId: ngo['id'],
+      status: status,
+      adminComments: comments.isNotEmpty ? comments : null,
     );
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Donor approved successfully')),
-      );
       _loadData();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('NGO ${status} successfully')),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to approve donor')),
+        SnackBar(content: Text('Failed to ${status} NGO')),
       );
     }
   }
 
-  Future<void> _rejectDonor(Map<String, dynamic> donor) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+  void _showDonorApprovalDialog(Map<String, dynamic> donor, String status) {
+    final TextEditingController commentsController = TextEditingController();
+    final bool isApproval = status == 'approved';
 
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isApproval ? 'Approve Donor' : 'Reject Donor'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Donor: ${donor['name'] ?? donor['fullName'] ?? 'Unknown'}'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: commentsController,
+              decoration: InputDecoration(
+                labelText: isApproval
+                    ? 'Approval Comments (Optional)'
+                    : 'Rejection Reason',
+                hintText: isApproval
+                    ? 'Add any comments about this approval...'
+                    : 'Please provide a reason for rejection...',
+                border: const OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _updateDonorStatusNew(
+                  donor, status, commentsController.text);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isApproval ? Colors.green : Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(isApproval ? 'Approve' : 'Reject'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateDonorStatusNew(
+      Map<String, dynamic> donor, String status, String comments) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.updateDonorStatus(
       donorId: donor['id'],
-      status: 'rejected',
-      adminComments: 'Rejected by admin',
+      status: status,
+      adminComments: comments.isNotEmpty ? comments : null,
+      collection: donor['collection'], // Pass the collection info
     );
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Donor rejected')),
-      );
       _loadData();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Donor ${status} successfully')),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to reject donor')),
+        SnackBar(content: Text('Failed to ${status} donor')),
       );
     }
+  }
+
+  void _showDonorReviewDialog(Map<String, dynamic> donor) {
+    final TextEditingController commentsController = TextEditingController();
+    String selectedStatus = donor['status'] ?? 'pending';
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Review Donor'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Donor: ${donor['name'] ?? donor['fullName'] ?? 'Unknown'}'),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: selectedStatus,
+              decoration: const InputDecoration(
+                labelText: 'Status',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'pending', child: Text('Pending')),
+                DropdownMenuItem(
+                    value: 'under_review', child: Text('Under Review')),
+                DropdownMenuItem(value: 'approved', child: Text('Approved')),
+                DropdownMenuItem(value: 'rejected', child: Text('Rejected')),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  selectedStatus = value;
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: commentsController,
+              decoration: const InputDecoration(
+                labelText: 'Comments',
+                hintText: 'Add any comments about this donor...',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _updateDonorStatusNew(
+                  donor, selectedStatus, commentsController.text);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryRed,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _sendRenewalReminder(Map<String, dynamic> ngo) {
@@ -1299,6 +1699,801 @@ class _AdminDashboardState extends State<AdminDashboard>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
           content: Text('Renewal reminder sent to ${ngo['organizationName']}')),
+    );
+  }
+
+  Widget _buildDonorNGOAssignmentTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Donor-NGO Assignment Management',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+          ),
+          const SizedBox(height: 20),
+
+          // Assignment Statistics
+          _buildAssignmentStats(),
+          const SizedBox(height: 20),
+
+          // Assignment List
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Current Assignments',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => _showCreateAssignmentDialog(),
+                icon: const Icon(Icons.add),
+                label: const Text('Create Assignment'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryRed,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildAssignmentList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssignmentStats() {
+    return FutureBuilder<Map<String, int>>(
+      future: DonorNGOService.getAssignmentStats(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const LoadingWidget();
+        }
+
+        final stats = snapshot.data ?? {};
+        return Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                'Total Donors',
+                stats['totalDonors']?.toString() ?? '0',
+                Icons.people,
+                Colors.blue,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildStatCard(
+                'Total NGOs',
+                stats['totalNGOs']?.toString() ?? '0',
+                Icons.business,
+                Colors.green,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildStatCard(
+                'Assigned Donors',
+                stats['assignedDonors']?.toString() ?? '0',
+                Icons.link,
+                Colors.orange,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildStatCard(
+                'Total Assignments',
+                stats['totalAssignments']?.toString() ?? '0',
+                Icons.assignment,
+                Colors.purple,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildAssignmentList() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: DonorNGOService.getAllAssignments(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const LoadingWidget();
+        }
+
+        final assignments = snapshot.data ?? [];
+        if (assignments.isEmpty) {
+          return CustomCard(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                children: [
+                  Icon(Icons.link_off, size: 64, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No assignments found',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Start by assigning NGOs to donors',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey[500],
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: assignments.length,
+          itemBuilder: (context, index) {
+            final assignment = assignments[index];
+            return _buildAssignmentCard(assignment);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildAssignmentCard(Map<String, dynamic> assignment) {
+    return CustomCard(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Donor ID: ${assignment['donorId']}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  onSelected: (value) =>
+                      _handleAssignmentAction(value, assignment),
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: ListTile(
+                        leading: Icon(Icons.edit, color: AppTheme.primaryRed),
+                        title: Text('Edit Assignment'),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'remove',
+                      child: ListTile(
+                        leading: Icon(Icons.delete, color: Colors.red),
+                        title: Text('Remove Assignment'),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Assigned NGOs: ${(assignment['assignedNGOs'] as List).length}',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Assigned: ${_formatDate(assignment['assignedAt'])}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCertificatesTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'NGO Certificate Management',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+          ),
+          const SizedBox(height: 20),
+
+          // Certificate Types
+          Row(
+            children: [
+              Expanded(
+                child: _buildCertificateTypeCard(
+                  'Registration Certificate',
+                  'Generate registration certificate for approved NGOs',
+                  Icons.assignment_turned_in,
+                  Colors.blue,
+                  () => _showCertificateDialog('registration'),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildCertificateTypeCard(
+                  'Compliance Certificate',
+                  'Generate compliance certificate for verified NGOs',
+                  Icons.verified,
+                  Colors.green,
+                  () => _showCertificateDialog('compliance'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildCertificateTypeCard(
+                  'Due Diligence Certificate',
+                  'Generate due diligence certificate for verified NGOs',
+                  Icons.search,
+                  Colors.orange,
+                  () => _showCertificateDialog('due_diligence'),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildCertificateTypeCard(
+                  'Bulk Certificates',
+                  'Generate certificates for multiple NGOs',
+                  Icons.batch_prediction,
+                  Colors.purple,
+                  () => _showBulkCertificateDialog(),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCertificateTypeCard(
+    String title,
+    String description,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return CustomCard(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Icon(icon, size: 48, color: color),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                description,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _handleAssignmentAction(String action, Map<String, dynamic> assignment) {
+    switch (action) {
+      case 'edit':
+        _showEditAssignmentDialog(assignment);
+        break;
+      case 'remove':
+        _showRemoveAssignmentDialog(assignment);
+        break;
+    }
+  }
+
+  void _showEditAssignmentDialog(Map<String, dynamic> assignment) {
+    showDialog(
+      context: context,
+      builder: (context) => _AssignmentDialog(
+        assignment: assignment,
+        onSave: (selectedNGOs) async {
+          final success = await DonorNGOService.updateNGOAssignment(
+            donorId: assignment['donorId'],
+            ngoIds: selectedNGOs,
+            adminId: 'admin', // You can get this from auth provider
+          );
+
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Assignment updated successfully')),
+            );
+            setState(() {});
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to update assignment')),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  void _showRemoveAssignmentDialog(Map<String, dynamic> assignment) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Assignment'),
+        content: Text(
+            'Are you sure you want to remove the NGO assignment for donor ${assignment['donorId']}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final success = await DonorNGOService.removeNGOAssignment(
+                  assignment['donorId']);
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('Assignment removed successfully')),
+                );
+                setState(() {});
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Failed to remove assignment')),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCertificateDialog(String certificateType) {
+    // Show NGO selection dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+            'Select NGO for ${certificateType.replaceAll('_', ' ').toUpperCase()} Certificate'),
+        content: SizedBox(
+          width: 300,
+          height: 400,
+          child: FutureBuilder<List<Map<String, dynamic>>>(
+            future: _loadApprovedNGOs(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final ngos = snapshot.data ?? [];
+              if (ngos.isEmpty) {
+                return const Center(
+                  child: Text('No approved NGOs found'),
+                );
+              }
+
+              return ListView.builder(
+                itemCount: ngos.length,
+                itemBuilder: (context, index) {
+                  final ngo = ngos[index];
+                  return ListTile(
+                    title: Text(ngo['organizationName'] ?? 'Unknown NGO'),
+                    subtitle: Text(ngo['email'] ?? 'No email'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      CertificateService.showCertificateDialog(
+                        context: context,
+                        certificateType: certificateType,
+                        ngoName: ngo['organizationName'] ?? 'Unknown NGO',
+                        ngoId: ngo['id'] ?? '',
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> _loadApprovedNGOs() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('ngo_proposals')
+          .where('status', isEqualTo: 'approved')
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  void _showBulkCertificateDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Bulk Certificate Generation'),
+        content:
+            const Text('Bulk certificate generation functionality coming soon'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCreateAssignmentDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => _CreateAssignmentDialog(
+        onSave: (donorId, selectedNGOs) async {
+          final success = await DonorNGOService.assignNGOsToDonor(
+            donorId: donorId,
+            ngoIds: selectedNGOs,
+            adminId: 'admin', // You can get this from auth provider
+          );
+
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Assignment created successfully')),
+            );
+            setState(() {});
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to create assignment')),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  String _formatDate(dynamic timestamp) {
+    if (timestamp == null) return 'Unknown';
+    if (timestamp is Timestamp) {
+      return timestamp.toDate().toString().split(' ')[0];
+    }
+    return timestamp.toString();
+  }
+
+  Future<void> _logout(BuildContext context) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.logout();
+    if (context.mounted) {
+      Navigator.pushReplacementNamed(context, '/');
+    }
+  }
+}
+
+class _AssignmentDialog extends StatefulWidget {
+  final Map<String, dynamic> assignment;
+  final Function(List<String>) onSave;
+
+  const _AssignmentDialog({
+    required this.assignment,
+    required this.onSave,
+  });
+
+  @override
+  State<_AssignmentDialog> createState() => _AssignmentDialogState();
+}
+
+class _AssignmentDialogState extends State<_AssignmentDialog> {
+  List<String> _selectedNGOs = [];
+  List<Map<String, dynamic>> _availableNGOs = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedNGOs = List<String>.from(widget.assignment['assignedNGOs'] ?? []);
+    _loadNGOs();
+  }
+
+  Future<void> _loadNGOs() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('ngo_proposals')
+          .where('status', isEqualTo: 'approved')
+          .get();
+
+      setState(() {
+        _availableNGOs = snapshot.docs.map((doc) {
+          final data = doc.data();
+          data['id'] = doc.id;
+          return data;
+        }).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Edit Assignment for Donor ${widget.assignment['donorId']}'),
+      content: SizedBox(
+        width: 400,
+        height: 500,
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                children: [
+                  Text(
+                    'Select NGOs to assign to this donor:',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _availableNGOs.length,
+                      itemBuilder: (context, index) {
+                        final ngo = _availableNGOs[index];
+                        final isSelected = _selectedNGOs.contains(ngo['id']);
+
+                        return CheckboxListTile(
+                          title: Text(ngo['organizationName'] ?? 'Unknown NGO'),
+                          subtitle: Text(ngo['email'] ?? 'No email'),
+                          value: isSelected,
+                          onChanged: (value) {
+                            setState(() {
+                              if (value == true) {
+                                _selectedNGOs.add(ngo['id']);
+                              } else {
+                                _selectedNGOs.remove(ngo['id']);
+                              }
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            widget.onSave(_selectedNGOs);
+            Navigator.pop(context);
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
+class _CreateAssignmentDialog extends StatefulWidget {
+  final Function(String, List<String>) onSave;
+
+  const _CreateAssignmentDialog({
+    required this.onSave,
+  });
+
+  @override
+  State<_CreateAssignmentDialog> createState() =>
+      _CreateAssignmentDialogState();
+}
+
+class _CreateAssignmentDialogState extends State<_CreateAssignmentDialog> {
+  String? _selectedDonorId;
+  List<String> _selectedNGOs = [];
+  List<Map<String, dynamic>> _availableDonors = [];
+  List<Map<String, dynamic>> _availableNGOs = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      // Load donors
+      final donorsSnapshot =
+          await FirebaseFirestore.instance.collection('donor_profiles').get();
+      final donorsSnapshot2 =
+          await FirebaseFirestore.instance.collection('donors').get();
+
+      List<Map<String, dynamic>> allDonors = [];
+
+      for (final doc in donorsSnapshot.docs) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        data['collection'] = 'donor_profiles';
+        allDonors.add(data);
+      }
+
+      for (final doc in donorsSnapshot2.docs) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        data['collection'] = 'donors';
+        allDonors.add(data);
+      }
+
+      // Load NGOs
+      final ngosSnapshot = await FirebaseFirestore.instance
+          .collection('ngo_proposals')
+          .where('status', isEqualTo: 'approved')
+          .get();
+
+      setState(() {
+        _availableDonors = allDonors;
+        _availableNGOs = ngosSnapshot.docs.map((doc) {
+          final data = doc.data();
+          data['id'] = doc.id;
+          return data;
+        }).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Create Donor-NGO Assignment'),
+      content: SizedBox(
+        width: 500,
+        height: 600,
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                children: [
+                  // Donor Selection
+                  Text(
+                    'Select Donor:',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: _selectedDonorId,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Choose a donor',
+                    ),
+                    items: _availableDonors.map((donor) {
+                      return DropdownMenuItem<String>(
+                        value: donor['id'],
+                        child: Text(
+                          '${donor['name'] ?? donor['fullName'] ?? 'Unknown'} (${donor['email'] ?? 'No email'})',
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedDonorId = value;
+                      });
+                    },
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // NGO Selection
+                  Text(
+                    'Select NGOs to assign:',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _availableNGOs.length,
+                      itemBuilder: (context, index) {
+                        final ngo = _availableNGOs[index];
+                        final isSelected = _selectedNGOs.contains(ngo['id']);
+
+                        return CheckboxListTile(
+                          title: Text(ngo['organizationName'] ?? 'Unknown NGO'),
+                          subtitle: Text(ngo['email'] ?? 'No email'),
+                          value: isSelected,
+                          onChanged: (value) {
+                            setState(() {
+                              if (value == true) {
+                                _selectedNGOs.add(ngo['id']);
+                              } else {
+                                _selectedNGOs.remove(ngo['id']);
+                              }
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _selectedDonorId != null && _selectedNGOs.isNotEmpty
+              ? () {
+                  widget.onSave(_selectedDonorId!, _selectedNGOs);
+                  Navigator.pop(context);
+                }
+              : null,
+          child: const Text('Create Assignment'),
+        ),
+      ],
     );
   }
 }

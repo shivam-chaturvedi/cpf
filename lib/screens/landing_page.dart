@@ -6,6 +6,7 @@ import 'package:cpf_portal/util/helpers.dart';
 import 'package:cpf_portal/util/theme.dart';
 import 'package:cpf_portal/widgets/custome_card.dart';
 import '../widgets/custom_button.dart';
+import '../widgets/custom_navbar.dart';
 
 // Added missing BannerImageRotator class
 class BannerImageRotator extends StatefulWidget {
@@ -99,34 +100,12 @@ class _LandingPageState extends State<LandingPage>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
-  // Carousel variables (removed PageController as it's not used)
-  int _currentCarouselIndex = 0;
-
   // Section keys for smooth scrolling
   final GlobalKey _heroSectionKey = GlobalKey();
   final GlobalKey _benefitsSectionKey = GlobalKey();
   final GlobalKey _servicesSectionKey = GlobalKey();
   final GlobalKey _faqSectionKey = GlobalKey();
   final GlobalKey _supportSectionKey = GlobalKey();
-
-  // Carousel images (placeholder data)
-  final List<Map<String, String>> _carouselImages = [
-    {
-      'title': 'Empowering Communities',
-      'subtitle': 'Through strategic partnerships and innovative solutions',
-      'icon': 'handshake'
-    },
-    {
-      'title': 'Building Trust',
-      'subtitle': 'Transparent processes for sustainable impact',
-      'icon': 'verified'
-    },
-    {
-      'title': 'Creating Change',
-      'subtitle': 'Together we can make a lasting difference',
-      'icon': 'favorite'
-    },
-  ];
 
   @override
   void initState() {
@@ -176,138 +155,27 @@ class _LandingPageState extends State<LandingPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundGray,
+      appBar: const CustomNavbar(
+        title: 'CPF Portal',
+        isLandingPage: true,
+      ),
       body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         child: Column(
           children: [
-            _buildHeader(),
             Container(key: _heroSectionKey, child: _buildHeroSection()),
             Container(key: _benefitsSectionKey, child: _buildBenefitsSection()),
+            _buildStatsSection(),
+            _buildVideoSection(),
+            _buildTestimonialsSection(),
             Container(key: _servicesSectionKey, child: _buildServicesSection()),
+            _buildImpactSection(),
+            _buildPartnersSection(),
             Container(key: _faqSectionKey, child: _buildFAQSection()),
             Container(key: _supportSectionKey, child: _buildSupportSection()),
             _buildFooter(),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      color: AppTheme.surfaceWhite,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: SafeArea(
-        child: AppHelpers.isMobile(context)
-            ? Column(
-                children: [
-                  Row(
-                    children: [
-                      // Logo with error handling
-                      Image.asset(
-                        'images/CPF_Logo.jpg',
-                        height: 40,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              gradient: AppTheme.primaryGradient,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.business_center,
-                              color: AppTheme.surfaceWhite,
-                              size: 24,
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Collaborative Philanthropic Foundation',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize:
-                                AppHelpers.getResponsiveFontSize(context, 24),
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryRed,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 2,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  CustomButton(
-                    text: 'Login',
-                    onPressed: () => _showLoginOptions(),
-                    icon: Icons.login,
-                    isOutlined: true,
-                    width: double.infinity,
-                  ),
-                ],
-              )
-            : Row(
-                children: [
-                  // Logo with error handling
-                  Image.asset(
-                    'images/CPF_Logo.jpg',
-                    height: 40,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          gradient: AppTheme.primaryGradient,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.business_center,
-                          color: AppTheme.surfaceWhite,
-                          size: 24,
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Collaborative Philanthropic Foundation',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: AppHelpers.getResponsiveFontSize(context, 30),
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryRed,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 2,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-
-                  if (AppHelpers.isDesktop(context)) ...[
-                    TextButton(
-                      onPressed: () => _scrollToSection(_heroSectionKey),
-                      child: const Text('Home'),
-                    ),
-                    TextButton(
-                      onPressed: () => _scrollToSection(_faqSectionKey),
-                      child: const Text('FAQ'),
-                    ),
-                    TextButton(
-                      onPressed: () => _scrollToSection(_supportSectionKey),
-                      child: const Text('Contact'),
-                    ),
-                    const SizedBox(width: 16),
-                  ],
-                  CustomButton(
-                    text: 'Login',
-                    onPressed: () => _showLoginOptions(),
-                    icon: Icons.login,
-                    isOutlined: true,
-                  ),
-                ],
-              ),
       ),
     );
   }
@@ -847,6 +715,511 @@ class _LandingPageState extends State<LandingPage>
     );
   }
 
+  Widget _buildStatsSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+      child: Column(
+        children: [
+          Text(
+            'Our Impact in Numbers',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 40),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  '500+',
+                  'NGOs Registered',
+                  Icons.business,
+                  Colors.blue,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildStatCard(
+                  '₹50M+',
+                  'Funds Disbursed',
+                  Icons.attach_money,
+                  Colors.green,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildStatCard(
+                  '25+',
+                  'Years Experience',
+                  Icons.timeline,
+                  Colors.orange,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildStatCard(
+                  '1000+',
+                  'Lives Impacted',
+                  Icons.favorite,
+                  Colors.red,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(
+      String number, String label, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 40, color: color),
+          const SizedBox(height: 16),
+          Text(
+            number,
+            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVideoSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+      child: Column(
+        children: [
+          Text(
+            'See CPF in Action',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Watch how we\'re making a difference in communities across India',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 40),
+          Container(
+            height: 300,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Stack(
+                children: [
+                  // Placeholder for video - in real app, use video_player package
+                  Container(
+                    color: AppTheme.primaryRed,
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.play_circle_filled,
+                            size: 80,
+                            color: Colors.white,
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'Watch Our Impact Video',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Play button overlay
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.play_arrow,
+                        size: 40,
+                        color: AppTheme.primaryRed,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTestimonialsSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.primaryRed.withOpacity(0.1),
+            AppTheme.primaryOrange.withOpacity(0.1),
+          ],
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'What Our Partners Say',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 40),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildTestimonialCard(
+                  'Sarah Johnson',
+                  'CEO, Green Earth Foundation',
+                  'CPF has been instrumental in helping us scale our environmental initiatives. Their transparent processes and dedicated support have made all the difference.',
+                  Icons.eco,
+                ),
+                const SizedBox(width: 20),
+                _buildTestimonialCard(
+                  'Rajesh Kumar',
+                  'Founder, Education for All',
+                  'The impact measurement tools provided by CPF have helped us demonstrate our effectiveness to donors. Highly recommended!',
+                  Icons.school,
+                ),
+                const SizedBox(width: 20),
+                _buildTestimonialCard(
+                  'Priya Sharma',
+                  'Director, Women Empowerment NGO',
+                  'CPF\'s capacity building programs have transformed our organization. We\'ve seen a 300% increase in our impact metrics.',
+                  Icons.person,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTestimonialCard(
+      String name, String title, String quote, IconData icon) {
+    return Container(
+      width: 300,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: AppTheme.primaryRed, size: 30),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
+                          ),
+                    ),
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.textSecondary,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '"$quote"',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.textSecondary,
+                  fontStyle: FontStyle.italic,
+                  height: 1.5,
+                ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: List.generate(
+                5,
+                (index) => Icon(
+                      Icons.star,
+                      color: Colors.amber,
+                      size: 16,
+                    )),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImpactSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+      child: Column(
+        children: [
+          Text(
+            'Our Impact Stories',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 40),
+          Row(
+            children: [
+              Expanded(
+                child: _buildImpactCard(
+                  'Education Initiative',
+                  'Built 50 schools in rural areas, impacting 10,000+ children',
+                  'images/Banner1.png',
+                  Colors.blue,
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: _buildImpactCard(
+                  'Healthcare Access',
+                  'Provided medical care to 25,000+ underserved families',
+                  'images/Banner2.png',
+                  Colors.green,
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: _buildImpactCard(
+                  'Environmental Conservation',
+                  'Planted 100,000+ trees and restored 500 acres of forest',
+                  'images/Banner3.png',
+                  Colors.teal,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImpactCard(
+      String title, String description, String imagePath, Color color) {
+    return Container(
+      height: 300,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          children: [
+            Image.asset(
+              imagePath,
+              width: double.infinity,
+              height: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: color.withOpacity(0.8),
+                  child: Center(
+                    child: Icon(
+                      Icons.image,
+                      size: 60,
+                      color: Colors.white,
+                    ),
+                  ),
+                );
+              },
+            ),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.7),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      description,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.white.withOpacity(0.9),
+                            height: 1.4,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPartnersSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+      ),
+      child: Column(
+        children: [
+          Text(
+            'Trusted by Leading Organizations',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 40),
+          Wrap(
+            spacing: 40,
+            runSpacing: 20,
+            alignment: WrapAlignment.center,
+            children: [
+              _buildPartnerLogo('Tata Group'),
+              _buildPartnerLogo('Reliance Foundation'),
+              _buildPartnerLogo('Infosys Foundation'),
+              _buildPartnerLogo('Wipro Foundation'),
+              _buildPartnerLogo('HDFC Bank'),
+              _buildPartnerLogo('ICICI Foundation'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPartnerLogo(String name) {
+    return Container(
+      width: 120,
+      height: 80,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          name,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textSecondary,
+              ),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+
   Widget _buildFooter() {
     return Container(
       color: AppTheme.textPrimary,
@@ -947,83 +1320,6 @@ class _LandingPageState extends State<LandingPage>
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  void _showLoginOptions() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Container(
-        padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 24,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppTheme.borderGray,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Choose Login Type',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 24),
-              CustomButton(
-                text: 'NGO Login',
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, '/ngo-login');
-                },
-                icon: Icons.business_center,
-                width: double.infinity,
-              ),
-              const SizedBox(height: 24),
-              CustomButton(
-                text: 'Donor Login',
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, '/donor-login');
-                },
-                icon: Icons.people,
-                backgroundColor: AppTheme.primaryOrange,
-                width: double.infinity,
-              ),
-              const SizedBox(height: 24),
-              CustomButton(
-                text: 'Admin Login',
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, '/admin-login');
-                },
-                icon: Icons.admin_panel_settings,
-                backgroundColor: AppTheme.errorRed,
-                width: double.infinity,
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-            ],
-          ),
         ),
       ),
     );

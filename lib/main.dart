@@ -13,16 +13,20 @@ import 'screens/admin_dashboard.dart';
 import 'screens/donor_login.dart';
 import 'screens/donor_registration.dart';
 import 'screens/donor_dashboard.dart';
+import 'screens/contact_page.dart';
+import 'screens/about_page.dart';
+import 'screens/ngo_list_page.dart';
+import 'screens/donate_page.dart';
 import 'package:cpf_portal/util/theme.dart' as cpf_theme;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize Firebase with proper options
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  
+
   runApp(const CPFPortalApp());
 }
 
@@ -48,7 +52,8 @@ class CPFPortalApp extends StatelessWidget {
             case '/ngo-login':
               return MaterialPageRoute(builder: (_) => const NGOLoginPage());
             case '/ngo-register':
-              return MaterialPageRoute(builder: (_) => const NGORegistrationPage());
+              return MaterialPageRoute(
+                  builder: (_) => const NGORegistrationPage());
             case '/ngo-dashboard':
               return MaterialPageRoute(builder: (_) => const NGODashboard());
             case '/admin-login':
@@ -58,9 +63,18 @@ class CPFPortalApp extends StatelessWidget {
             case '/donor-login':
               return MaterialPageRoute(builder: (_) => const DonorLoginPage());
             case '/donor-register':
-              return MaterialPageRoute(builder: (_) => const DonorRegistrationPage());
+              return MaterialPageRoute(
+                  builder: (_) => const DonorRegistrationPage());
             case '/donor-dashboard':
               return MaterialPageRoute(builder: (_) => const DonorDashboard());
+            case '/contact':
+              return MaterialPageRoute(builder: (_) => const ContactPage());
+            case '/about':
+              return MaterialPageRoute(builder: (_) => const AboutPage());
+            case '/ngo-list':
+              return MaterialPageRoute(builder: (_) => const NGOListPage());
+            case '/donate':
+              return MaterialPageRoute(builder: (_) => const DonatePage());
             default:
               return MaterialPageRoute(
                 builder: (_) => const Scaffold(

@@ -7,6 +7,8 @@ import 'package:cpf_portal/widgets/custom_button.dart';
 import 'package:cpf_portal/widgets/custome_card.dart';
 import 'package:cpf_portal/widgets/loading_widget.dart';
 import 'package:cpf_portal/widgets/empty_state_widget.dart';
+import 'package:cpf_portal/widgets/custom_navbar.dart';
+import 'package:cpf_portal/services/donor_ngo_service.dart';
 
 class DonorDashboard extends StatefulWidget {
   const DonorDashboard({super.key});
@@ -53,28 +55,48 @@ class _DonorDashboardState extends State<DonorDashboard>
         return;
       }
 
-      // Load donor profile
-      final donorDoc =
+      // Load donor profile from either collection
+      final donorProfilesDoc =
           await _firestore.collection('donor_profiles').doc(user.uid).get();
+      final donorsDoc =
+          await _firestore.collection('donors').doc(user.uid).get();
 
-      if (donorDoc.exists) {
-        _donorProfile = donorDoc.data();
+      if (donorProfilesDoc.exists) {
+        _donorProfile = donorProfilesDoc.data();
+      } else if (donorsDoc.exists) {
+        _donorProfile = donorsDoc.data();
       } else {
         Navigator.pushReplacementNamed(context, '/donor-login');
         return;
       }
 
-      // Load approved NGOs
-      final ngoSnapshot = await _firestore
-          .collection('ngo_proposals')
-          .where('status', isEqualTo: 'approved')
-          .get();
+      // Load assigned NGOs for this donor
+      final assignedNGOIds = await DonorNGOService.getAssignedNGOs(user.uid);
 
       _approvedNGOs.clear();
-      for (final doc in ngoSnapshot.docs) {
-        final data = doc.data();
-        data['ngoId'] = doc.id;
-        _approvedNGOs.add(data);
+      if (assignedNGOIds.isNotEmpty) {
+        for (final ngoId in assignedNGOIds) {
+          final ngoDoc =
+              await _firestore.collection('ngo_proposals').doc(ngoId).get();
+
+          if (ngoDoc.exists) {
+            final data = ngoDoc.data()!;
+            data['ngoId'] = ngoId;
+            _approvedNGOs.add(data);
+          }
+        }
+      } else {
+        // If no assignments, show all approved NGOs (fallback)
+        final ngoSnapshot = await _firestore
+            .collection('ngo_proposals')
+            .where('status', isEqualTo: 'approved')
+            .get();
+
+        for (final doc in ngoSnapshot.docs) {
+          final data = doc.data();
+          data['ngoId'] = doc.id;
+          _approvedNGOs.add(data);
+        }
       }
 
       // Load donations (placeholder for now)
@@ -106,60 +128,11 @@ class _DonorDashboardState extends State<DonorDashboard>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundGray,
-      appBar: AppBar(
-        title: Text('Welcome, ${_donorProfile?['name'] ?? 'Donor'}'),
-        backgroundColor: AppTheme.surfaceWhite,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadDonorData,
-            tooltip: 'Refresh Data',
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) {
-              switch (value) {
-                case 'profile':
-                  _showProfileDialog();
-                  break;
-                case 'logout':
-                  _logout();
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'profile',
-                child: ListTile(
-                  leading: Icon(Icons.person),
-                  title: Text('View Profile'),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'logout',
-                child: ListTile(
-                  leading: Icon(Icons.logout),
-                  title: Text('Logout'),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-            ],
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: AppTheme.primaryRed,
-          unselectedLabelColor: AppTheme.textSecondary,
-          indicatorColor: AppTheme.primaryRed,
-          tabs: const [
-            Tab(text: 'Dashboard', icon: Icon(Icons.dashboard)),
-            Tab(text: 'NGOs', icon: Icon(Icons.business)),
-            Tab(text: 'Donations', icon: Icon(Icons.favorite)),
-          ],
-        ),
+      appBar: DashboardNavbar(
+        title: 'Welcome, ${_donorProfile?['name'] ?? 'Donor'}',
+        userType: 'donor',
+        onLogout: _logout,
+        onRefresh: _loadDonorData,
       ),
       body: _isLoading
           ? const LoadingWidget(message: 'Loading donor data...')
@@ -181,12 +154,32 @@ class _DonorDashboardState extends State<DonorDashboard>
                     ],
                   ),
                 )
-              : TabBarView(
-                  controller: _tabController,
+              : Column(
                   children: [
-                    _buildDashboardTab(),
-                    _buildNGOTab(),
-                    _buildDonationsTab(),
+                    Container(
+                      color: AppTheme.primaryRed,
+                      child: TabBar(
+                        controller: _tabController,
+                        labelColor: Colors.white,
+                        unselectedLabelColor: Colors.white70,
+                        indicatorColor: Colors.white,
+                        tabs: const [
+                          Tab(text: 'Dashboard', icon: Icon(Icons.dashboard)),
+                          Tab(text: 'NGOs', icon: Icon(Icons.business)),
+                          Tab(text: 'Donations', icon: Icon(Icons.favorite)),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildDashboardTab(),
+                          _buildNGOTab(),
+                          _buildDonationsTab(),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
     );
@@ -598,64 +591,6 @@ class _DonorDashboardState extends State<DonorDashboard>
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppTheme.textSecondary,
                 ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showProfileDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Donor Profile'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildProfileField('Name', _donorProfile?['name'] ?? 'N/A'),
-            _buildProfileField('Email', _donorProfile?['email'] ?? 'N/A'),
-            _buildProfileField(
-                'Organization', _donorProfile?['organization'] ?? 'N/A'),
-            _buildProfileField('Phone', _donorProfile?['phone'] ?? 'N/A'),
-            _buildProfileField(
-                'Donor Type', _donorProfile?['donorType'] ?? 'N/A'),
-            _buildProfileField('Status', _donorProfile?['status'] ?? 'N/A'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileField(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              '$label:',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
-                  ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
-            ),
           ),
         ],
       ),

@@ -240,16 +240,46 @@ class AuthProvider with ChangeNotifier {
   // Donor management methods
   Future<List<Map<String, dynamic>>> getAllDonors() async {
     try {
-      final snapshot = await _firestore
+      // Try both collections to ensure we get all donors
+      final donorsSnapshot = await _firestore
           .collection('donors')
           .orderBy('createdAt', descending: true)
           .get();
 
-      return snapshot.docs.map((doc) {
+      final donorProfilesSnapshot = await _firestore
+          .collection('donor_profiles')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      List<Map<String, dynamic>> allDonors = [];
+
+      // Add donors from 'donors' collection
+      for (final doc in donorsSnapshot.docs) {
         final data = doc.data();
         data['id'] = doc.id;
-        return data;
-      }).toList();
+        data['collection'] = 'donors';
+        allDonors.add(data);
+      }
+
+      // Add donors from 'donor_profiles' collection
+      for (final doc in donorProfilesSnapshot.docs) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        data['collection'] = 'donor_profiles';
+        allDonors.add(data);
+      }
+
+      // Sort by creation date
+      allDonors.sort((a, b) {
+        final aDate = a['createdAt'] as Timestamp?;
+        final bDate = b['createdAt'] as Timestamp?;
+        if (aDate == null && bDate == null) return 0;
+        if (aDate == null) return 1;
+        if (bDate == null) return -1;
+        return bDate.compareTo(aDate);
+      });
+
+      return allDonors;
     } catch (e) {
       print('Error fetching donors: $e');
       return [];
@@ -260,9 +290,13 @@ class AuthProvider with ChangeNotifier {
     required String donorId,
     required String status,
     String? adminComments,
+    String? collection,
   }) async {
     try {
-      await _firestore.collection('donors').doc(donorId).update({
+      // Determine which collection to update
+      String collectionName = collection ?? 'donors';
+
+      await _firestore.collection(collectionName).doc(donorId).update({
         'status': status,
         'adminComments': adminComments,
         'reviewedAt': FieldValue.serverTimestamp(),
@@ -278,14 +312,35 @@ class AuthProvider with ChangeNotifier {
 
   Future<Map<String, int>> getDonorStatistics() async {
     try {
-      final snapshot = await _firestore.collection('donors').get();
+      // Get statistics from both collections
+      final donorsSnapshot = await _firestore.collection('donors').get();
+      final donorProfilesSnapshot =
+          await _firestore.collection('donor_profiles').get();
 
       int pending = 0;
       int approved = 0;
       int rejected = 0;
-      int total = snapshot.docs.length;
+      int total =
+          donorsSnapshot.docs.length + donorProfilesSnapshot.docs.length;
 
-      for (final doc in snapshot.docs) {
+      // Count from 'donors' collection
+      for (final doc in donorsSnapshot.docs) {
+        final status = doc.data()['status'] as String? ?? 'pending';
+        switch (status.toLowerCase()) {
+          case 'pending':
+            pending++;
+            break;
+          case 'approved':
+            approved++;
+            break;
+          case 'rejected':
+            rejected++;
+            break;
+        }
+      }
+
+      // Count from 'donor_profiles' collection
+      for (final doc in donorProfilesSnapshot.docs) {
         final status = doc.data()['status'] as String? ?? 'pending';
         switch (status.toLowerCase()) {
           case 'pending':

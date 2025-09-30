@@ -16,11 +16,12 @@ class DonorLoginPage extends StatefulWidget {
   State<DonorLoginPage> createState() => _DonorLoginPageState();
 }
 
-class _DonorLoginPageState extends State<DonorLoginPage> with TickerProviderStateMixin {
+class _DonorLoginPageState extends State<DonorLoginPage>
+    with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  
+
   bool _isLoading = false;
   bool _obscurePassword = true;
   late AnimationController _animationController;
@@ -65,13 +66,18 @@ class _DonorLoginPageState extends State<DonorLoginPage> with TickerProviderStat
       );
 
       if (credential.user != null) {
-        // Check if user is a donor
-        final donorDoc = await FirebaseFirestore.instance
+        // Check if user is a donor in either collection
+        final donorProfilesDoc = await FirebaseFirestore.instance
             .collection('donor_profiles')
             .doc(credential.user!.uid)
             .get();
 
-        if (donorDoc.exists) {
+        final donorsDoc = await FirebaseFirestore.instance
+            .collection('donors')
+            .doc(credential.user!.uid)
+            .get();
+
+        if (donorProfilesDoc.exists || donorsDoc.exists) {
           if (mounted) {
             AppHelpers.showSuccessSnackBar(context, 'Login successful!');
             Navigator.pushReplacementNamed(context, '/donor-dashboard');
@@ -80,7 +86,8 @@ class _DonorLoginPageState extends State<DonorLoginPage> with TickerProviderStat
           // User exists but is not a donor
           await FirebaseAuth.instance.signOut();
           if (mounted) {
-            AppHelpers.showErrorSnackBar(context, 'This account is not registered as a donor');
+            AppHelpers.showErrorSnackBar(
+                context, 'This account is not registered as a donor');
           }
         }
       }
@@ -102,7 +109,7 @@ class _DonorLoginPageState extends State<DonorLoginPage> with TickerProviderStat
         default:
           message = e.message ?? 'Login failed';
       }
-      
+
       if (mounted) {
         AppHelpers.showErrorSnackBar(context, message);
       }
@@ -150,25 +157,31 @@ class _DonorLoginPageState extends State<DonorLoginPage> with TickerProviderStat
                           const SizedBox(height: 16),
                           Text(
                             'Donor Portal',
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              color: AppTheme.surfaceWhite,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(
+                                  color: AppTheme.surfaceWhite,
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Sign in to access donor features',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.surfaceWhite.withOpacity(0.9),
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: AppTheme.surfaceWhite.withOpacity(0.9),
+                                ),
                             textAlign: TextAlign.center,
                           ),
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 32),
-                    
+
                     // Login Form
                     CustomCard(
                       child: Form(
@@ -178,24 +191,25 @@ class _DonorLoginPageState extends State<DonorLoginPage> with TickerProviderStat
                           children: [
                             Text(
                               'Sign In',
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.textPrimary,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.textPrimary,
+                                  ),
                             ),
                             const SizedBox(height: 24),
-                            
                             CustomTextField(
                               controller: _emailController,
                               label: 'Email Address',
                               hint: 'Enter your email address',
                               icon: Icons.email,
                               keyboardType: TextInputType.emailAddress,
-                              validator: (value) => Validators.validateEmail(value),
+                              validator: (value) =>
+                                  Validators.validateEmail(value),
                             ),
-                            
                             const SizedBox(height: 20),
-                            
                             CustomTextField(
                               controller: _passwordController,
                               label: 'Password',
@@ -204,7 +218,9 @@ class _DonorLoginPageState extends State<DonorLoginPage> with TickerProviderStat
                               obscureText: _obscurePassword,
                               suffixIcon: IconButton(
                                 icon: Icon(
-                                  _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                                  _obscurePassword
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
                                 ),
                                 onPressed: () {
                                   setState(() {
@@ -212,11 +228,10 @@ class _DonorLoginPageState extends State<DonorLoginPage> with TickerProviderStat
                                   });
                                 },
                               ),
-                              validator: (value) => Validators.validatePassword(value),
+                              validator: (value) =>
+                                  Validators.validatePassword(value),
                             ),
-                            
                             const SizedBox(height: 20),
-                            
                             CustomButton(
                               text: 'Sign In',
                               onPressed: _isLoading ? null : _login,
@@ -224,40 +239,43 @@ class _DonorLoginPageState extends State<DonorLoginPage> with TickerProviderStat
                               isLoading: _isLoading,
                               width: double.infinity,
                             ),
-                            
                             const SizedBox(height: 12),
-                            
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
                                   "Don't have an account? ",
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: AppTheme.textSecondary,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(
+                                        color: AppTheme.textSecondary,
+                                      ),
                                 ),
                                 GestureDetector(
                                   onTap: () {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => const DonorRegistrationPage(),
+                                        builder: (context) =>
+                                            const DonorRegistrationPage(),
                                       ),
                                     );
                                   },
                                   child: Text(
                                     'Sign Up',
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: AppTheme.primaryRed,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: AppTheme.primaryRed,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                   ),
                                 ),
                               ],
                             ),
-                            
                             const SizedBox(height: 8),
-                            
                             Center(
                               child: TextButton(
                                 onPressed: () {
@@ -265,19 +283,25 @@ class _DonorLoginPageState extends State<DonorLoginPage> with TickerProviderStat
                                 },
                                 style: TextButton.styleFrom(
                                   padding: EdgeInsets.symmetric(
-                                    horizontal: AppHelpers.getResponsiveSpacing(context, 16),
-                                    vertical: AppHelpers.getResponsiveSpacing(context, 8),
+                                    horizontal: AppHelpers.getResponsiveSpacing(
+                                        context, 16),
+                                    vertical: AppHelpers.getResponsiveSpacing(
+                                        context, 8),
                                   ),
                                   minimumSize: Size(
-                                    AppHelpers.getResponsiveSpacing(context, 120),
-                                    AppHelpers.getResponsiveButtonHeight(context) * 0.7,
+                                    AppHelpers.getResponsiveSpacing(
+                                        context, 120),
+                                    AppHelpers.getResponsiveButtonHeight(
+                                            context) *
+                                        0.7,
                                   ),
                                 ),
                                 child: Text(
                                   'Back to Home',
                                   style: TextStyle(
                                     color: AppTheme.textSecondary,
-                                    fontSize: AppHelpers.getResponsiveFontSize(context, 14),
+                                    fontSize: AppHelpers.getResponsiveFontSize(
+                                        context, 14),
                                   ),
                                 ),
                               ),
