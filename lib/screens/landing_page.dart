@@ -20,9 +20,9 @@ class _BannerImageRotatorState extends State<BannerImageRotator> {
   Timer? _timer;
 
   final List<String> _images = [
-    'lib/assets/assets/Banner1.png',
-    'lib/assets/assets/Banner2.png',
-    'lib/assets/assets/Banner3.png',
+    'images/Banner1.png',
+    'images/Banner2.png',
+    'images/Banner3.png',
   ];
 
   @override
@@ -93,14 +93,15 @@ class LandingPage extends StatefulWidget {
   State<LandingPage> createState() => _LandingPageState();
 }
 
-class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin {
+class _LandingPageState extends State<LandingPage>
+    with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-  
+
   // Carousel variables (removed PageController as it's not used)
   int _currentCarouselIndex = 0;
-  
+
   // Section keys for smooth scrolling
   final GlobalKey _heroSectionKey = GlobalKey();
   final GlobalKey _benefitsSectionKey = GlobalKey();
@@ -134,7 +135,7 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -142,7 +143,7 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
       parent: _animationController,
       curve: Curves.easeInOut,
     ));
-    
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
@@ -150,10 +151,9 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
       parent: _animationController,
       curve: Curves.easeOutCubic,
     ));
-    
+
     _animationController.forward();
   }
-
 
   @override
   void dispose() {
@@ -204,7 +204,7 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
                     children: [
                       // Logo with error handling
                       Image.asset(
-                        'lib/assets/assets/images/CPF_Logo.png', 
+                        'images/CPF_Logo.jpg',
                         height: 40,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
@@ -227,7 +227,8 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
                           'Collaborative Philanthropic Foundation',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: AppHelpers.getResponsiveFontSize(context, 24),
+                            fontSize:
+                                AppHelpers.getResponsiveFontSize(context, 24),
                             fontWeight: FontWeight.bold,
                             color: AppTheme.primaryRed,
                           ),
@@ -251,7 +252,7 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
                 children: [
                   // Logo with error handling
                   Image.asset(
-                    'lib/assets/assets/images/CPF_Logo.png', 
+                    'images/CPF_Logo.jpg',
                     height: 40,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
@@ -283,7 +284,7 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
                     ),
                   ),
                   const SizedBox(width: 12),
-                  
+
                   if (AppHelpers.isDesktop(context)) ...[
                     TextButton(
                       onPressed: () => _scrollToSection(_heroSectionKey),
@@ -326,36 +327,36 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
               children: [
                 // Banner Image Rotator
                 const BannerImageRotator(),
-                
+
                 const SizedBox(height: 40),
-                
+
                 Text(
                   'Empowering NGOs Through Trust & Transparency',
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                    color: AppTheme.surfaceWhite,
-                    fontWeight: FontWeight.bold,
-                    height: 1.2,
-                  ),
+                        color: AppTheme.surfaceWhite,
+                        fontWeight: FontWeight.bold,
+                        height: 1.2,
+                      ),
                   textAlign: TextAlign.center,
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Overview text from blueprint
                 Container(
                   constraints: const BoxConstraints(maxWidth: 800),
                   child: Text(
                     'The Collaborative Philanthropy Foundation (CPF) is a forward-looking Section 8 company that builds upon the legacy and experience of Charities Aid Foundation India, a trusted entity that has been serving the development sector since 1998. CPF operates as an impact-led, research and data-driven organization, offering customized support to a wide array of stakeholders including companies, CSR boards, civil society organizations, and philanthropic foundations.',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppTheme.surfaceWhite.withOpacity(0.9),
-                      height: 1.6,
-                    ),
+                          color: AppTheme.surfaceWhite.withOpacity(0.9),
+                          height: 1.6,
+                        ),
                     textAlign: TextAlign.center,
                   ),
                 ),
-                
+
                 const SizedBox(height: 32),
-                
+
                 // Benefits checkmarks from wireframe
                 Wrap(
                   spacing: 24,
@@ -367,50 +368,54 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
                     _buildBenefitItem('✅ Build Donor Trust'),
                   ],
                 ),
-                
+
                 const SizedBox(height: 40),
-                
+
                 // CTA Buttons from wireframe
-                AppHelpers.isMobile(context) 
-                  ? Column(
-                      children: [
-                        CustomButton(
-                          text: 'Register Your NGO',
-                          onPressed: () => Navigator.pushNamed(context, '/ngo-register'),
-                          icon: Icons.app_registration,
-                          backgroundColor: AppTheme.primaryOrange,
-                          width: double.infinity,
-                        ),
-                        const SizedBox(height: 16),
-                        CustomButton(
-                          text: 'Learn More',
-                          onPressed: () => _scrollToSection(_benefitsSectionKey),
-                          icon: Icons.info_outline,
-                          isOutlined: true,
-                          backgroundColor: AppTheme.surfaceWhite,
-                          width: double.infinity,
-                        ),
-                      ],
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CustomButton(
-                          text: 'Register Your NGO',
-                          onPressed: () => Navigator.pushNamed(context, '/ngo-register'),
-                          icon: Icons.app_registration,
-                          backgroundColor: AppTheme.primaryOrange,
-                        ),
-                        const SizedBox(width: 16),
-                        CustomButton(
-                          text: 'Learn More',
-                          onPressed: () => _scrollToSection(_benefitsSectionKey),
-                          icon: Icons.info_outline,
-                          isOutlined: true,
-                          backgroundColor: AppTheme.surfaceWhite,
-                        ),
-                      ],
-                    ),
+                AppHelpers.isMobile(context)
+                    ? Column(
+                        children: [
+                          CustomButton(
+                            text: 'Register Your NGO',
+                            onPressed: () =>
+                                Navigator.pushNamed(context, '/ngo-register'),
+                            icon: Icons.app_registration,
+                            backgroundColor: AppTheme.primaryOrange,
+                            width: double.infinity,
+                          ),
+                          const SizedBox(height: 16),
+                          CustomButton(
+                            text: 'Learn More',
+                            onPressed: () =>
+                                _scrollToSection(_benefitsSectionKey),
+                            icon: Icons.info_outline,
+                            isOutlined: true,
+                            backgroundColor: AppTheme.surfaceWhite,
+                            width: double.infinity,
+                          ),
+                        ],
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CustomButton(
+                            text: 'Register Your NGO',
+                            onPressed: () =>
+                                Navigator.pushNamed(context, '/ngo-register'),
+                            icon: Icons.app_registration,
+                            backgroundColor: AppTheme.primaryOrange,
+                          ),
+                          const SizedBox(width: 16),
+                          CustomButton(
+                            text: 'Learn More',
+                            onPressed: () =>
+                                _scrollToSection(_benefitsSectionKey),
+                            icon: Icons.info_outline,
+                            isOutlined: true,
+                            backgroundColor: AppTheme.surfaceWhite,
+                          ),
+                        ],
+                      ),
               ],
             ),
           ),
@@ -418,7 +423,6 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
       ),
     );
   }
-
 
   Widget _buildBenefitItem(String text) {
     return Container(
@@ -433,9 +437,9 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
       child: Text(
         text,
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: AppTheme.surfaceWhite,
-          fontWeight: FontWeight.w500,
-        ),
+              color: AppTheme.surfaceWhite,
+              fontWeight: FontWeight.w500,
+            ),
       ),
     );
   }
@@ -448,25 +452,21 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
           Text(
             'Why Choose CPF Portal?',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
             textAlign: TextAlign.center,
           ),
-          
           const SizedBox(height: 16),
-          
           Text(
             'The portal is designed to empower NGOs by streamlining access to funding opportunities, enhancing visibility, and ensuring greater transparency through a structured due diligence process.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: AppTheme.textSecondary,
-              height: 1.6,
-            ),
+                  color: AppTheme.textSecondary,
+                  height: 1.6,
+                ),
             textAlign: TextAlign.center,
           ),
-          
           const SizedBox(height: 40),
-          
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -500,7 +500,8 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildFeatureCard(IconData icon, String title, String description, Color color) {
+  Widget _buildFeatureCard(
+      IconData icon, String title, String description, Color color) {
     return CustomCard(
       child: Column(
         children: [
@@ -520,18 +521,18 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
           Text(
             title,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             description,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondary,
-              height: 1.5,
-            ),
+                  color: AppTheme.textSecondary,
+                  height: 1.5,
+                ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -555,25 +556,21 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
               Text(
                 'Our Services',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary,
-                ),
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
               ),
             ],
           ),
-          
           const SizedBox(height: 16),
-          
           Text(
             'We provide specialized services to support donors and stakeholders in evaluating and partnering with credible NGOs.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: AppTheme.textSecondary,
-              height: 1.6,
-            ),
+                  color: AppTheme.textSecondary,
+                  height: 1.6,
+                ),
           ),
-          
           const SizedBox(height: 32),
-          
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -601,7 +598,8 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildServiceCard(IconData icon, String title, String description, Color color) {
+  Widget _buildServiceCard(
+      IconData icon, String title, String description, Color color) {
     return CustomCard(
       child: Row(
         children: [
@@ -625,17 +623,17 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   description,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textSecondary,
-                    height: 1.5,
-                  ),
+                        color: AppTheme.textSecondary,
+                        height: 1.5,
+                      ),
                 ),
               ],
             ),
@@ -661,65 +659,84 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
               Text(
                 'Frequently Asked Questions',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary,
-                ),
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
               ),
             ],
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // FAQ Section with questions from wireframe
           const FAQSection(
             faqs: [
               {
                 'question': 'How do I register my NGO on the portal?',
-                'answer': 'To register your NGO, click on the "Register" button on the homepage, fill in the required organization and contact details, upload the necessary documents, and submit the application. You will receive a confirmation once the registration is successful.',
+                'answer':
+                    'To register your NGO, click on the "Register" button on the homepage, fill in the required organization and contact details, upload the necessary documents, and submit the application. You will receive a confirmation once the registration is successful.',
               },
               {
                 'question': 'Is there a fee for registration or validation?',
-                'answer': 'Yes, the registration and validation processes on the portal are chargeable. This has been confirmed by the CPF support team. You may contact their support team for further details. Once confirmed, you can proceed with filling out the registration form.'
+                'answer':
+                    'Yes, the registration and validation processes on the portal are chargeable. This has been confirmed by the CPF support team. You may contact their support team for further details. Once confirmed, you can proceed with filling out the registration form.'
               },
               {
                 'question': 'What documents are required for NGO registration?',
-                'answer': 'You typically need to submit your registration certificate, PAN card, address proof, details of governing body members, and recent financial statements. The specific requirements will be listed during the registration process.',
+                'answer':
+                    'You typically need to submit your registration certificate, PAN card, address proof, details of governing body members, and recent financial statements. The specific requirements will be listed during the registration process.',
               },
               {
                 'question': 'How long does it take for registration approval?',
-                'answer': 'The approval process usually takes 5-10 working days, depending on the completeness of your submission and the volume of applications.',
+                'answer':
+                    'The approval process usually takes 5-10 working days, depending on the completeness of your submission and the volume of applications.',
               },
               {
-                'question': 'What should I do if my registration is rejected or returned for correction?',
-                'answer': 'If your application is rejected or returned, review the remarks provided, make the necessary corrections, and resubmit the application. You can also contact support for clarification.',
+                'question':
+                    'What should I do if my registration is rejected or returned for correction?',
+                'answer':
+                    'If your application is rejected or returned, review the remarks provided, make the necessary corrections, and resubmit the application. You can also contact support for clarification.',
               },
               {
-                'question': 'How can I update my NGO\'s information on the portal?',
-                'answer': 'After logging in, navigate to the "Profile" section where you can edit or update your organization\'s details. Any changes will be subject to review and approval.',
+                'question':
+                    'How can I update my NGO\'s information on the portal?',
+                'answer':
+                    'After logging in, navigate to the "Profile" section where you can edit or update your organization\'s details. Any changes will be subject to review and approval.',
               },
               {
-                'question': 'What is the validation process after registration?',
-                'answer': 'Validation involves verifying the authenticity of submitted documents and information. This may include cross-checking with government databases and requesting additional clarification if needed.',
+                'question':
+                    'What is the validation process after registration?',
+                'answer':
+                    'Validation involves verifying the authenticity of submitted documents and information. This may include cross-checking with government databases and requesting additional clarification if needed.',
               },
               {
-                'question': 'How do I ensure my NGO remains compliant with portal requirements?',
-                'answer': 'Ensure timely submission of annual reports, financial statements, and any required declarations. Keep your information up to date and follow all listed compliance guidelines.',
+                'question':
+                    'How do I ensure my NGO remains compliant with portal requirements?',
+                'answer':
+                    'Ensure timely submission of annual reports, financial statements, and any required declarations. Keep your information up to date and follow all listed compliance guidelines.',
               },
               {
-                'question': 'What happens if my NGO fails to maintain compliance?',
-                'answer': 'Non-compliance may lead to temporary suspension or deactivation of your account. You will be notified of the issue and given a chance to rectify it before any further action is taken.',
+                'question':
+                    'What happens if my NGO fails to maintain compliance?',
+                'answer':
+                    'Non-compliance may lead to temporary suspension or deactivation of your account. You will be notified of the issue and given a chance to rectify it before any further action is taken.',
               },
               {
                 'question': 'Can multiple users manage the same NGO profile?',
-                'answer': 'Yes, you can assign additional authorized users to your NGO profile. Each user must have a unique login and appropriate permissions.',
+                'answer':
+                    'Yes, you can assign additional authorized users to your NGO profile. Each user must have a unique login and appropriate permissions.',
               },
               {
-                'question': 'Where can I track the status of my registration or validation?',
-                'answer': 'You can check the status of your application by logging into your account and viewing the "Application Status" dashboard.',
+                'question':
+                    'Where can I track the status of my registration or validation?',
+                'answer':
+                    'You can check the status of your application by logging into your account and viewing the "Application Status" dashboard.',
               },
               {
-                'question': 'Whom should I contact for technical support or assistance?',
-                'answer': 'For any issues or queries, you can reach out to our support team via the "Help & Support" section on the portal or email us at support@cpfindia.org.',
+                'question':
+                    'Whom should I contact for technical support or assistance?',
+                'answer':
+                    'For any issues or queries, you can reach out to our support team via the "Help & Support" section on the portal or email us at support@cpfindia.org.',
               },
             ],
           ),
@@ -746,15 +763,15 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
                 Text(
                   'Need Help?',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppTheme.primaryRed,
-                    fontWeight: FontWeight.bold,
-                  ),
+                        color: AppTheme.primaryRed,
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Updated support details
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -763,7 +780,8 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
                   Icons.phone,
                   'Phone Support',
                   '91 9871216099',
-                  () => AppHelpers.showInfoSnackBar(context, 'Phone: 91 9871216099'),
+                  () => AppHelpers.showInfoSnackBar(
+                      context, 'Phone: 91 9871216099'),
                 ),
                 if (AppHelpers.isDesktop(context))
                   Container(
@@ -775,7 +793,8 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
                   Icons.email,
                   'Email Support',
                   'support@cpfindia.org',
-                  () => AppHelpers.showInfoSnackBar(context, 'Email: support@cpfindia.org'),
+                  () => AppHelpers.showInfoSnackBar(
+                      context, 'Email: support@cpfindia.org'),
                 ),
               ],
             ),
@@ -785,7 +804,8 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildContactItem(IconData icon, String title, String contact, VoidCallback onTap) {
+  Widget _buildContactItem(
+      IconData icon, String title, String contact, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -809,17 +829,17 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
             Text(
               title,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
-              ),
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimary,
+                  ),
             ),
             const SizedBox(height: 4),
             Text(
               contact,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondary,
-                fontWeight: FontWeight.w500,
-              ),
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
           ],
         ),
@@ -846,15 +866,15 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
               Text(
                 'CPF Social Media & Links',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppTheme.surfaceWhite,
-                  fontWeight: FontWeight.w600,
-                ),
+                      color: AppTheme.surfaceWhite,
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           Wrap(
             spacing: 24,
             runSpacing: 12,
@@ -871,21 +891,21 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
               ),
             ],
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           Container(
             height: 1,
             color: AppTheme.surfaceWhite.withOpacity(0.2),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           Text(
             '© 2024 Collaborative Philanthropy Foundation. All rights reserved.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.surfaceWhite.withOpacity(0.8),
-            ),
+                  color: AppTheme.surfaceWhite.withOpacity(0.8),
+                ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -914,15 +934,15 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
                 Text(
                   title,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.surfaceWhite,
-                    fontWeight: FontWeight.w500,
-                  ),
+                        color: AppTheme.surfaceWhite,
+                        fontWeight: FontWeight.w500,
+                      ),
                 ),
                 Text(
                   subtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.surfaceWhite.withOpacity(0.7),
-                  ),
+                        color: AppTheme.surfaceWhite.withOpacity(0.7),
+                      ),
                 ),
               ],
             ),
@@ -950,60 +970,60 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppTheme.borderGray,
-                borderRadius: BorderRadius.circular(2),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.borderGray,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Choose Login Type',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
+              const SizedBox(height: 24),
+              Text(
+                'Choose Login Type',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
-            ),
-            const SizedBox(height: 24),
-            CustomButton(
-              text: 'NGO Login',
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/ngo-login');
-              },
-              icon: Icons.business_center,
-              width: double.infinity,
-            ),
-            const SizedBox(height: 24),
-            CustomButton(
-              text: 'Donor Login',
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/donor-login');
-              },
-              icon: Icons.people,
-              backgroundColor: AppTheme.primaryOrange,
-              width: double.infinity,
-            ),
-            const SizedBox(height: 24),
-            CustomButton(
-              text: 'Admin Login',
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/admin-login');
-              },
-              icon: Icons.admin_panel_settings,
-              backgroundColor: AppTheme.errorRed,
-              width: double.infinity,
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-          ],
-        ),
+              const SizedBox(height: 24),
+              CustomButton(
+                text: 'NGO Login',
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/ngo-login');
+                },
+                icon: Icons.business_center,
+                width: double.infinity,
+              ),
+              const SizedBox(height: 24),
+              CustomButton(
+                text: 'Donor Login',
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/donor-login');
+                },
+                icon: Icons.people,
+                backgroundColor: AppTheme.primaryOrange,
+                width: double.infinity,
+              ),
+              const SizedBox(height: 24),
+              CustomButton(
+                text: 'Admin Login',
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/admin-login');
+                },
+                icon: Icons.admin_panel_settings,
+                backgroundColor: AppTheme.errorRed,
+                width: double.infinity,
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+            ],
+          ),
         ),
       ),
     );

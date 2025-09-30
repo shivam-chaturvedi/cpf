@@ -48,10 +48,8 @@ class NGOProvider with ChangeNotifier {
         return;
       }
 
-      final doc = await _firestore
-          .collection('ngo_proposals')
-          .doc(user.uid)
-          .get();
+      final doc =
+          await _firestore.collection('ngo_proposals').doc(user.uid).get();
 
       if (doc.exists) {
         _ngoData = doc.data();
@@ -144,7 +142,7 @@ class NGOProvider with ChangeNotifier {
 
       // Refresh local data
       await fetchNGOData();
-      
+
       _setLoading(false);
       return true;
     } catch (e) {
@@ -158,11 +156,11 @@ class NGOProvider with ChangeNotifier {
   Future<Map<String, int>> getNGOStatistics() async {
     try {
       final snapshot = await _firestore.collection('ngo_proposals').get();
-      
+
       int pending = 0;
       int approved = 0;
       int rejected = 0;
-      
+
       for (final doc in snapshot.docs) {
         final status = doc.data()['status'] as String? ?? 'pending';
         switch (status.toLowerCase()) {
@@ -202,13 +200,182 @@ class NGOProvider with ChangeNotifier {
       _setError(null);
 
       await _firestore.collection('ngo_proposals').doc(ngoId).delete();
-      
+
       _setLoading(false);
       return true;
     } catch (e) {
       _setError('Failed to delete NGO: ${e.toString()}');
       _setLoading(false);
       return false;
+    }
+  }
+
+  // Get NGOs with advanced filtering
+  Future<List<Map<String, dynamic>>> getFilteredNGOs({
+    String? status,
+    String? category,
+    String? location,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? searchQuery,
+  }) async {
+    try {
+      _setLoading(true);
+      _setError(null);
+
+      Query query = _firestore.collection('ngo_proposals');
+
+      // Apply filters
+      if (status != null && status.isNotEmpty) {
+        query = query.where('status', isEqualTo: status);
+      }
+      if (category != null && category.isNotEmpty) {
+        query = query.where('category', isEqualTo: category);
+      }
+      if (location != null && location.isNotEmpty) {
+        query = query.where('location', isEqualTo: location);
+      }
+      if (startDate != null) {
+        query = query.where('createdAt', isGreaterThanOrEqualTo: startDate);
+      }
+      if (endDate != null) {
+        query = query.where('createdAt', isLessThanOrEqualTo: endDate);
+      }
+
+      final snapshot = await query.orderBy('createdAt', descending: true).get();
+      List<Map<String, dynamic>> ngos = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+
+      // Apply search filter
+      if (searchQuery != null && searchQuery.isNotEmpty) {
+        ngos = ngos.where((ngo) {
+          final name = ngo['organizationName']?.toString().toLowerCase() ?? '';
+          final email = ngo['email']?.toString().toLowerCase() ?? '';
+          final query = searchQuery.toLowerCase();
+          return name.contains(query) || email.contains(query);
+        }).toList();
+      }
+
+      _setLoading(false);
+      return ngos;
+    } catch (e) {
+      _setError('Failed to fetch filtered NGOs: ${e.toString()}');
+      _setLoading(false);
+      return [];
+    }
+  }
+
+  // Get NGOs approaching renewal (1 year from approval)
+  Future<List<Map<String, dynamic>>> getNGOsApproachingRenewal() async {
+    try {
+      final oneYearAgo = DateTime.now().subtract(Duration(days: 365));
+      final threeMonthsFromNow = DateTime.now().add(Duration(days: 90));
+
+      final snapshot = await _firestore
+          .collection('ngo_proposals')
+          .where('status', isEqualTo: 'approved')
+          .where('approvedAt', isGreaterThanOrEqualTo: oneYearAgo)
+          .where('approvedAt', isLessThanOrEqualTo: threeMonthsFromNow)
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+    } catch (e) {
+      _setError('Failed to fetch NGOs approaching renewal: ${e.toString()}');
+      return [];
+    }
+  }
+
+  // Update NGO follow-up status
+  Future<bool> updateFollowUpStatus({
+    required String ngoId,
+    required String followUpStatus,
+    String? followUpNotes,
+  }) async {
+    try {
+      _setLoading(true);
+      _setError(null);
+
+      await _firestore.collection('ngo_proposals').doc(ngoId).update({
+        'followUpStatus': followUpStatus,
+        'followUpNotes': followUpNotes,
+        'followUpUpdatedAt': FieldValue.serverTimestamp(),
+        'followUpUpdatedBy': _auth.currentUser?.email,
+      });
+
+      _setLoading(false);
+      return true;
+    } catch (e) {
+      _setError('Failed to update follow-up status: ${e.toString()}');
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  // Get validation statistics
+  Future<Map<String, dynamic>> getValidationStatistics() async {
+    try {
+      final snapshot = await _firestore.collection('ngo_proposals').get();
+
+      int pending = 0;
+      int underReview = 0;
+      int approved = 0;
+      int rejected = 0;
+      int needsFollowUp = 0;
+      int total = snapshot.docs.length;
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final status = data['status'] as String? ?? 'pending';
+        final followUpStatus = data['followUpStatus'] as String? ?? '';
+
+        switch (status.toLowerCase()) {
+          case 'pending':
+            pending++;
+            break;
+          case 'under_review':
+            underReview++;
+            break;
+          case 'approved':
+            approved++;
+            break;
+          case 'rejected':
+            rejected++;
+            break;
+        }
+
+        if (followUpStatus.toLowerCase() == 'needs_follow_up') {
+          needsFollowUp++;
+        }
+      }
+
+      return {
+        'total': total,
+        'pending': pending,
+        'underReview': underReview,
+        'approved': approved,
+        'rejected': rejected,
+        'needsFollowUp': needsFollowUp,
+        'approvalRate':
+            total > 0 ? (approved / total * 100).toStringAsFixed(1) : '0.0',
+      };
+    } catch (e) {
+      _setError('Failed to fetch validation statistics: ${e.toString()}');
+      return {
+        'total': 0,
+        'pending': 0,
+        'underReview': 0,
+        'approved': 0,
+        'rejected': 0,
+        'needsFollowUp': 0,
+        'approvalRate': '0.0',
+      };
     }
   }
 }

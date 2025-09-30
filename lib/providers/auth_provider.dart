@@ -7,7 +7,7 @@ enum UserRole { ngo, admin }
 class AuthProvider with ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  
+
   User? _user;
   UserRole? _userRole;
   bool _isLoading = false;
@@ -55,13 +55,11 @@ class AuthProvider with ChangeNotifier {
       _profileComplete = true;
       return;
     }
-    
+
     try {
-      final doc = await _firestore
-          .collection('ngo_proposals')
-          .doc(_user!.uid)
-          .get();
-          
+      final doc =
+          await _firestore.collection('ngo_proposals').doc(_user!.uid).get();
+
       if (doc.exists) {
         _profileComplete = doc.data()?['profileComplete'] ?? false;
       } else {
@@ -92,13 +90,11 @@ class AuthProvider with ChangeNotifier {
   Future<bool> isProfileComplete() async {
     if (_user == null) return false;
     if (_userRole == UserRole.admin) return true;
-    
+
     try {
-      final doc = await _firestore
-          .collection('ngo_proposals')
-          .doc(_user!.uid)
-          .get();
-          
+      final doc =
+          await _firestore.collection('ngo_proposals').doc(_user!.uid).get();
+
       if (doc.exists) {
         return doc.data()?['profileComplete'] ?? false;
       }
@@ -208,7 +204,7 @@ class AuthProvider with ChangeNotifier {
       _setError(null);
 
       await _auth.sendPasswordResetEmail(email: email);
-      
+
       _setLoading(false);
       return true;
     } on FirebaseAuthException catch (e) {
@@ -238,6 +234,86 @@ class AuthProvider with ChangeNotifier {
         return 'Too many failed attempts. Please try again later.';
       default:
         return 'An error occurred. Please try again.';
+    }
+  }
+
+  // Donor management methods
+  Future<List<Map<String, dynamic>>> getAllDonors() async {
+    try {
+      final snapshot = await _firestore
+          .collection('donors')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+    } catch (e) {
+      print('Error fetching donors: $e');
+      return [];
+    }
+  }
+
+  Future<bool> updateDonorStatus({
+    required String donorId,
+    required String status,
+    String? adminComments,
+  }) async {
+    try {
+      await _firestore.collection('donors').doc(donorId).update({
+        'status': status,
+        'adminComments': adminComments,
+        'reviewedAt': FieldValue.serverTimestamp(),
+        'reviewedBy': _auth.currentUser?.email,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      print('Error updating donor status: $e');
+      return false;
+    }
+  }
+
+  Future<Map<String, int>> getDonorStatistics() async {
+    try {
+      final snapshot = await _firestore.collection('donors').get();
+
+      int pending = 0;
+      int approved = 0;
+      int rejected = 0;
+      int total = snapshot.docs.length;
+
+      for (final doc in snapshot.docs) {
+        final status = doc.data()['status'] as String? ?? 'pending';
+        switch (status.toLowerCase()) {
+          case 'pending':
+            pending++;
+            break;
+          case 'approved':
+            approved++;
+            break;
+          case 'rejected':
+            rejected++;
+            break;
+        }
+      }
+
+      return {
+        'total': total,
+        'pending': pending,
+        'approved': approved,
+        'rejected': rejected,
+      };
+    } catch (e) {
+      print('Error fetching donor statistics: $e');
+      return {
+        'total': 0,
+        'pending': 0,
+        'approved': 0,
+        'rejected': 0,
+      };
     }
   }
 }
