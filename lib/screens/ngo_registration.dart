@@ -50,18 +50,23 @@ class _NGORegistrationPageState extends State<NGORegistrationPage> {
 
     try {
       // Step 1: Create Firebase Auth user
-      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      final userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
       final uid = userCredential.user!.uid;
-      
+
       // Step 2: Update display name
-      await userCredential.user!.updateDisplayName(_ngoNameController.text.trim());
+      await userCredential.user!
+          .updateDisplayName(_ngoNameController.text.trim());
 
       // Step 3: Create initial Firestore document with basic info
-      await FirebaseFirestore.instance.collection('ngo_proposals').doc(uid).set({
+      await FirebaseFirestore.instance
+          .collection('ngo_proposals')
+          .doc(uid)
+          .set({
         'ngoName': _ngoNameController.text.trim(),
         'email': _emailController.text.trim(),
         'uid': uid,
@@ -82,7 +87,6 @@ class _NGORegistrationPageState extends State<NGORegistrationPage> {
           ),
         );
       }
-
     } on FirebaseAuthException catch (e) {
       if (mounted) {
         String errorMessage;
@@ -91,13 +95,15 @@ class _NGORegistrationPageState extends State<NGORegistrationPage> {
             errorMessage = 'An account already exists with this email address.';
             break;
           case 'weak-password':
-            errorMessage = 'The password is too weak. Please use at least 6 characters.';
+            errorMessage =
+                'The password is too weak. Please use at least 6 characters.';
             break;
           case 'invalid-email':
             errorMessage = 'Invalid email address format.';
             break;
           case 'operation-not-allowed':
-            errorMessage = 'Email/password accounts are not enabled. Please contact support.';
+            errorMessage =
+                'Email/password accounts are not enabled. Please contact support.';
             break;
           default:
             errorMessage = 'Registration failed: ${e.message}';
@@ -154,25 +160,26 @@ class _NGORegistrationPageState extends State<NGORegistrationPage> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
+
                     Text(
                       'Create Your Account',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryRed,
-                      ),
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryRed,
+                              ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Start your registration process',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppTheme.textSecondary,
-                      ),
+                            color: AppTheme.textSecondary,
+                          ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 32),
-                    
+
                     CustomTextField(
                       controller: _ngoNameController,
                       label: 'NGO Name *',
@@ -181,7 +188,7 @@ class _NGORegistrationPageState extends State<NGORegistrationPage> {
                       validator: Validators.validateNGOName,
                     ),
                     const SizedBox(height: 20),
-                    
+
                     CustomTextField(
                       controller: _emailController,
                       label: 'Email Address *',
@@ -191,7 +198,7 @@ class _NGORegistrationPageState extends State<NGORegistrationPage> {
                       validator: Validators.validateEmail,
                     ),
                     const SizedBox(height: 20),
-                    
+
                     CustomPasswordField(
                       controller: _passwordController,
                       label: 'Password *',
@@ -199,25 +206,25 @@ class _NGORegistrationPageState extends State<NGORegistrationPage> {
                       validator: Validators.validatePassword,
                     ),
                     const SizedBox(height: 20),
-                    
+
                     CustomPasswordField(
                       controller: _confirmPasswordController,
                       label: 'Confirm Password *',
                       hint: 'Re-enter password',
-                      validator: (value) => 
-                        Validators.validateConfirmPassword(value, _passwordController.text),
+                      validator: (value) => Validators.validateConfirmPassword(
+                          value, _passwordController.text),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     CustomButton(
                       text: 'Create Account & Continue',
                       onPressed: _createAccountAndProceed,
                       isLoading: _isLoading,
                       icon: Icons.arrow_forward,
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -230,7 +237,7 @@ class _NGORegistrationPageState extends State<NGORegistrationPage> {
                       child: Row(
                         children: [
                           const Icon(
-                            Icons.info_outline, 
+                            Icons.info_outline,
                             color: AppTheme.primaryRed,
                             size: 20,
                           ),
@@ -238,19 +245,22 @@ class _NGORegistrationPageState extends State<NGORegistrationPage> {
                           Expanded(
                             child: Text(
                               'After creating your account, you\'ll complete your profile in multiple steps',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppTheme.primaryRed,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: AppTheme.primaryRed,
+                                  ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 24),
                     const Divider(),
                     const SizedBox(height: 16),
-                    
+
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -259,7 +269,8 @@ class _NGORegistrationPageState extends State<NGORegistrationPage> {
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                         TextButton(
-                          onPressed: () => Navigator.pushNamed(context, '/ngo-login'),
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/ngo-login'),
                           child: const Text('Login here'),
                         ),
                       ],
@@ -278,7 +289,7 @@ class _NGORegistrationPageState extends State<NGORegistrationPage> {
 // Phase 2: Complete Profile Page
 class NGOCompleteProfilePage extends StatefulWidget {
   final String uid;
-  
+
   const NGOCompleteProfilePage({super.key, required this.uid});
 
   @override
@@ -287,7 +298,8 @@ class NGOCompleteProfilePage extends StatefulWidget {
 
 class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
   final _pageController = PageController();
-  final List<GlobalKey<FormState>> _formKeys = List.generate(7, (index) => GlobalKey<FormState>());
+  final List<GlobalKey<FormState>> _formKeys =
+      List.generate(7, (index) => GlobalKey<FormState>());
   int _currentStep = 0;
   bool _isLoading = false;
   bool _isSaving = false;
@@ -306,9 +318,12 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
   final _chiefPhoneController = TextEditingController();
 
   // Section C: Contacts (1-3)
-  final List<TextEditingController> _contactNameControllers = List.generate(3, (index) => TextEditingController());
-  final List<TextEditingController> _contactEmailControllers = List.generate(3, (index) => TextEditingController());
-  final List<TextEditingController> _contactPhoneControllers = List.generate(3, (index) => TextEditingController());
+  final List<TextEditingController> _contactNameControllers =
+      List.generate(3, (index) => TextEditingController());
+  final List<TextEditingController> _contactEmailControllers =
+      List.generate(3, (index) => TextEditingController());
+  final List<TextEditingController> _contactPhoneControllers =
+      List.generate(3, (index) => TextEditingController());
 
   // Section E: Financial + Legal Documents
   String? _selectedFinancialYear;
@@ -327,7 +342,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
   List<String> _selectedSectors = [];
   final _otherSectorsController = TextEditingController();
   final _networksController = TextEditingController();
-  
+
   // UPDATED: Document metadata storage instead of PlatformFile
   Map<String, Map<String, dynamic>?> _documentMetadata = {
     'itr': null,
@@ -389,7 +404,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
     'data_protection_policy': false,
     'whistleblower_policy': false,
   };
-  
+
   final Map<String, String> _policyReasons = {
     'hr_policy': '',
     'finance_policy': '',
@@ -398,7 +413,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
     'data_protection_policy': '',
     'whistleblower_policy': '',
   };
-  
+
   final Map<String, PlatformFile?> _policyDocuments = {
     'hr_policy': null,
     'finance_policy': null,
@@ -419,24 +434,79 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
   ];
 
   final List<String> _countries = ['India', 'Other'];
-  
+
   // Complete list of Indian states and union territories
   final List<String> _states = [
-    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+    'Andhra Pradesh',
+    'Arunachal Pradesh',
+    'Assam',
+    'Bihar',
+    'Chhattisgarh',
+    'Goa',
+    'Gujarat',
+    'Haryana',
+    'Himachal Pradesh',
+    'Jharkhand',
+    'Karnataka',
+    'Kerala',
+    'Madhya Pradesh',
+    'Maharashtra',
+    'Manipur',
+    'Meghalaya',
+    'Mizoram',
+    'Nagaland',
+    'Odisha',
+    'Punjab',
+    'Rajasthan',
+    'Sikkim',
+    'Tamil Nadu',
+    'Telangana',
+    'Tripura',
+    'Uttar Pradesh',
+    'Uttarakhand',
+    'West Bengal',
     // Union Territories
-    'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry',
+    'Andaman and Nicobar Islands',
+    'Chandigarh',
+    'Dadra and Nagar Haveli and Daman and Diu',
+    'Delhi',
+    'Jammu and Kashmir',
+    'Ladakh',
+    'Lakshadweep',
+    'Puducherry',
   ];
-  
-  // Financial years from 2024-25 to 2050-51
-  final List<String> _financialYears = List.generate(
-    27, 
-    (index) => '${2024 + index}-${(2024 + index + 1).toString().substring(2)}'
-  );
-  
-  final List<String> _legalStatuses = ['Society', 'Trust', 'Section 8', 'Other'];
+
+  // Financial years from 4 years back to current year
+  List<String> get _financialYears {
+    final currentYear = DateTime.now().year;
+    final List<String> years = [];
+
+    // Add 4 years back to current year
+    for (int i = 4; i >= 0; i--) {
+      final year = currentYear - i;
+      years.add('${year}-${(year + 1).toString().substring(2)}');
+    }
+
+    return years;
+  }
+
+  final List<String> _legalStatuses = [
+    'Society',
+    'Trust',
+    'Section 8',
+    'Other'
+  ];
   final List<String> _sectors = [
-    'Education', 'Health', 'Environment', 'Women Empowerment', 'Child Development',
-    'Rural Development', 'Disaster Relief', 'Animal Welfare', 'Arts & Culture', 'Other'
+    'Education',
+    'Health',
+    'Environment',
+    'Women Empowerment',
+    'Child Development',
+    'Rural Development',
+    'Disaster Relief',
+    'Animal Welfare',
+    'Arts & Culture',
+    'Other'
   ];
 
   @override
@@ -452,11 +522,11 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
     _chiefNameController.dispose();
     _chiefEmailController.dispose();
     _chiefPhoneController.dispose();
-    
+
     for (var controller in _contactNameControllers) controller.dispose();
     for (var controller in _contactEmailControllers) controller.dispose();
     for (var controller in _contactPhoneControllers) controller.dispose();
-    
+
     _grossAmountController.dispose();
     _panController.dispose();
     _tanController.dispose();
@@ -470,33 +540,33 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
     _registrationCertController.dispose();
     _networksController.dispose();
     _otherSectorsController.dispose();
-    
+
     for (var controller in _socialMediaControllers.values) controller.dispose();
-    
+
     _registeredAddressController.dispose();
     _correspondingAddressController.dispose();
     _pageController.dispose();
-    
+
     super.dispose();
   }
 
   Future<void> _loadExistingData() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final doc = await FirebaseFirestore.instance
           .collection('ngo_proposals')
           .doc(widget.uid)
           .get();
-          
+
       if (doc.exists) {
         final data = doc.data()!;
-        
+
         // Load basic info
         _ngoName = data['ngoName'];
         _email = data['email'];
         _currentStep = data['currentStep'] ?? 0;
-        
+
         // Load form data if exists
         if (data['dateOfRegistration'] != null) {
           _dateOfRegistrationController.text = data['dateOfRegistration'];
@@ -504,14 +574,14 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
         _selectedCountry = data['country'];
         _selectedState = data['state'];
         _districtController.text = data['district'] ?? '';
-        
+
         // Chief Functionary
         if (data['chiefFunctionaryName'] != null) {
           _chiefNameController.text = data['chiefFunctionaryName'];
           _chiefEmailController.text = data['chiefFunctionaryEmail'] ?? '';
           _chiefPhoneController.text = data['chiefFunctionaryPhone'] ?? '';
         }
-        
+
         // Contact Persons
         if (data['contactPersons'] != null) {
           final contacts = data['contactPersons'] as List;
@@ -521,7 +591,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
             _contactPhoneControllers[i].text = contacts[i]['phone'] ?? '';
           }
         }
-        
+
         // Financial
         _selectedFinancialYear = data['financialYear'];
         if (data['grossAmountRaised'] != null) {
@@ -533,12 +603,13 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
         _csrController.text = data['csrRegistration'] ?? '';
         _darpanController.text = data['darpanId'] ?? '';
         _gstController.text = data['gstRegistration'] ?? '';
-        _professionalTaxController.text = data['professionalTaxRegistration'] ?? '';
+        _professionalTaxController.text =
+            data['professionalTaxRegistration'] ?? '';
         _cert12AController.text = data['cert12A'] ?? '';
         _cert80GController.text = data['cert80G'] ?? '';
         _registrationCertController.text = data['registrationCertNumber'] ?? '';
         _selectedLegalStatus = data['legalStatus'];
-        
+
         if (data['sectorOfWork'] != null) {
           _selectedSectors = List<String>.from(data['sectorOfWork']);
         }
@@ -557,14 +628,16 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
 
         // Load audit reports by year
         if (data['auditReportsByYear'] != null) {
-          final auditReports = data['auditReportsByYear'] as Map<String, dynamic>;
+          final auditReports =
+              data['auditReportsByYear'] as Map<String, dynamic>;
           auditReports.forEach((year, files) {
             if (_auditReportsByYear.containsKey(year) && files != null) {
-              _auditReportsByYear[year] = List<Map<String, dynamic>>.from(files);
+              _auditReportsByYear[year] =
+                  List<Map<String, dynamic>>.from(files);
             }
           });
         }
-        
+
         // Social Media
         if (data['socialMediaPresence'] != null) {
           final socialMedia = data['socialMediaPresence'] as Map;
@@ -574,7 +647,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
             }
           });
         }
-        
+
         if (data['socialMediaUrls'] != null) {
           final urls = data['socialMediaUrls'] as Map;
           urls.forEach((key, value) {
@@ -583,11 +656,12 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
             }
           });
         }
-        
+
         // Addresses
         _registeredAddressController.text = data['registeredAddress'] ?? '';
-        _correspondingAddressController.text = data['correspondingAddress'] ?? '';
-        
+        _correspondingAddressController.text =
+            data['correspondingAddress'] ?? '';
+
         // Jump to the saved step
         if (_currentStep > 0) {
           _pageController.jumpToPage(_currentStep);
@@ -614,18 +688,22 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
 
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.first;
-        
+
         // Validate file
         if (!FirestoreFileService.validateFile(file)) {
-          AppHelpers.showErrorSnackBar(context, 'Invalid file. Must be PDF, JPG, or PNG under 50MB');
+          AppHelpers.showErrorSnackBar(
+              context, 'Invalid file. Must be PDF, JPG, or PNG under 50MB');
           return;
         }
-        
+
         // Check file size limit based on document type
-        int maxSize = documentType.contains('audit') ? AppConstants.maxAuditFileSize : AppConstants.maxFileSize;
+        int maxSize = documentType.contains('audit')
+            ? AppConstants.maxAuditFileSize
+            : AppConstants.maxFileSize;
         if (file.size > maxSize) {
           int maxSizeMB = documentType.contains('audit') ? 25 : 5;
-          AppHelpers.showErrorSnackBar(context, 'File size exceeds ${maxSizeMB}MB limit');
+          AppHelpers.showErrorSnackBar(
+              context, 'File size exceeds ${maxSizeMB}MB limit');
           return;
         }
 
@@ -667,7 +745,10 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
               };
             });
 
-            AppHelpers.showSuccessSnackBar(context, 'Document uploaded successfully');
+            // Show success message with document name
+            final documentName = _getDocumentDisplayName(documentType);
+            AppHelpers.showSuccessSnackBar(
+                context, '✅ $documentName uploaded successfully!');
           }
         } catch (e) {
           // Close progress dialog
@@ -682,28 +763,30 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
 
   Future<void> _saveProgress({bool showMessage = true}) async {
     // Validate current step before saving
-    if (_currentStep == 3) { // Financial + Legal Docs section
+    if (_currentStep == 3) {
+      // Financial + Legal Docs section
       if (!_validateFinancialSection()) {
         print('🚫 Save Progress cancelled due to validation failure');
         return;
       }
-    } else if (_currentStep == 4) { // Policies & Compliance section
+    } else if (_currentStep == 4) {
+      // Policies & Compliance section
       if (!_validatePoliciesSection()) {
         print('🚫 Save Progress cancelled due to validation failure');
         return;
       }
     }
-    
+
     print('💾 Starting save progress...');
     setState(() => _isSaving = true);
-    
+
     try {
       // Prepare data based on current step
       Map<String, dynamic> updateData = {
         'currentStep': _currentStep,
         'updatedAt': FieldValue.serverTimestamp(),
       };
-      
+
       // Add data based on which sections have been filled
       // Section A
       if (_dateOfRegistrationController.text.isNotEmpty) {
@@ -711,15 +794,16 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
       }
       if (_selectedCountry != null) updateData['country'] = _selectedCountry;
       if (_selectedState != null) updateData['state'] = _selectedState;
-      if (_districtController.text.isNotEmpty) updateData['district'] = _districtController.text;
-      
+      if (_districtController.text.isNotEmpty)
+        updateData['district'] = _districtController.text;
+
       // Section B
       if (_chiefNameController.text.isNotEmpty) {
         updateData['chiefFunctionaryName'] = _chiefNameController.text;
         updateData['chiefFunctionaryEmail'] = _chiefEmailController.text;
         updateData['chiefFunctionaryPhone'] = _chiefPhoneController.text;
       }
-      
+
       // Section C
       List<Map<String, String>> contactPersons = [];
       for (int i = 0; i < 3; i++) {
@@ -734,32 +818,46 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
       if (contactPersons.isNotEmpty) {
         updateData['contactPersons'] = contactPersons;
       }
-      
+
       // Section E (D removed)
       if (_selectedFinancialYear != null) {
         updateData['financialYear'] = _selectedFinancialYear;
       }
       if (_grossAmountController.text.isNotEmpty) {
-        updateData['grossAmountRaised'] = double.tryParse(_grossAmountController.text) ?? 0.0;
+        updateData['grossAmountRaised'] =
+            double.tryParse(_grossAmountController.text) ?? 0.0;
       }
-      if (_panController.text.isNotEmpty) updateData['pan'] = _panController.text;
-      if (_tanController.text.isNotEmpty) updateData['tan'] = _tanController.text;
-      if (_fcraController.text.isNotEmpty) updateData['fcraRegistration'] = _fcraController.text;
-      if (_csrController.text.isNotEmpty) updateData['csrRegistration'] = _csrController.text;
-      if (_darpanController.text.isNotEmpty) updateData['darpanId'] = _darpanController.text;
-      if (_gstController.text.isNotEmpty) updateData['gstRegistration'] = _gstController.text;
+      if (_panController.text.isNotEmpty)
+        updateData['pan'] = _panController.text;
+      if (_tanController.text.isNotEmpty)
+        updateData['tan'] = _tanController.text;
+      if (_fcraController.text.isNotEmpty)
+        updateData['fcraRegistration'] = _fcraController.text;
+      if (_csrController.text.isNotEmpty)
+        updateData['csrRegistration'] = _csrController.text;
+      if (_darpanController.text.isNotEmpty)
+        updateData['darpanId'] = _darpanController.text;
+      if (_gstController.text.isNotEmpty)
+        updateData['gstRegistration'] = _gstController.text;
       if (_professionalTaxController.text.isNotEmpty) {
-        updateData['professionalTaxRegistration'] = _professionalTaxController.text;
+        updateData['professionalTaxRegistration'] =
+            _professionalTaxController.text;
       }
-      if (_cert12AController.text.isNotEmpty) updateData['cert12A'] = _cert12AController.text;
-      if (_cert80GController.text.isNotEmpty) updateData['cert80G'] = _cert80GController.text;
+      if (_cert12AController.text.isNotEmpty)
+        updateData['cert12A'] = _cert12AController.text;
+      if (_cert80GController.text.isNotEmpty)
+        updateData['cert80G'] = _cert80GController.text;
       if (_registrationCertController.text.isNotEmpty) {
         updateData['registrationCertNumber'] = _registrationCertController.text;
       }
-      if (_selectedLegalStatus != null) updateData['legalStatus'] = _selectedLegalStatus;
-      if (_selectedSectors.isNotEmpty) updateData['sectorOfWork'] = _selectedSectors;
-      if (_otherSectorsController.text.isNotEmpty) updateData['otherSectors'] = _otherSectorsController.text;
-      if (_networksController.text.isNotEmpty) updateData['networks'] = _networksController.text;
+      if (_selectedLegalStatus != null)
+        updateData['legalStatus'] = _selectedLegalStatus;
+      if (_selectedSectors.isNotEmpty)
+        updateData['sectorOfWork'] = _selectedSectors;
+      if (_otherSectorsController.text.isNotEmpty)
+        updateData['otherSectors'] = _otherSectorsController.text;
+      if (_networksController.text.isNotEmpty)
+        updateData['networks'] = _networksController.text;
 
       // UPDATED: Save document metadata
       Map<String, dynamic> documentsToSave = {};
@@ -782,11 +880,11 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
       if (auditReportsToSave.isNotEmpty) {
         updateData['auditReportsByYear'] = auditReportsToSave;
       }
-      
+
       // Section H: Policies & Compliance
       updateData['policyCompliance'] = _policyCompliance;
       updateData['policyReasons'] = _policyReasons;
-      
+
       // Save policy documents metadata
       Map<String, dynamic> policyDocumentsToSave = {};
       _policyDocuments.forEach((key, file) {
@@ -803,7 +901,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
       if (policyDocumentsToSave.isNotEmpty) {
         updateData['policyDocuments'] = policyDocumentsToSave;
       }
-      
+
       // Section F
       updateData['socialMediaPresence'] = _socialMediaPresence;
       Map<String, String> socialMediaUrls = {};
@@ -815,20 +913,21 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
       if (socialMediaUrls.isNotEmpty) {
         updateData['socialMediaUrls'] = socialMediaUrls;
       }
-      
+
       // Section G
       if (_registeredAddressController.text.isNotEmpty) {
         updateData['registeredAddress'] = _registeredAddressController.text;
       }
       if (_correspondingAddressController.text.isNotEmpty) {
-        updateData['correspondingAddress'] = _correspondingAddressController.text;
+        updateData['correspondingAddress'] =
+            _correspondingAddressController.text;
       }
-      
+
       await FirebaseFirestore.instance
           .collection('ngo_proposals')
           .doc(widget.uid)
           .update(updateData);
-          
+
       if (mounted && showMessage) {
         print('✅ Save progress completed successfully');
         AppHelpers.showSuccessSnackBar(context, 'Progress saved successfully');
@@ -845,20 +944,22 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
 
   Future<void> _nextStep() async {
     // Additional validation for specific sections
-    if (_currentStep == 3) { // Financial + Legal Docs section
+    if (_currentStep == 3) {
+      // Financial + Legal Docs section
       if (!_validateFinancialSection()) {
         return;
       }
-    } else if (_currentStep == 4) { // Policies & Compliance section
+    } else if (_currentStep == 4) {
+      // Policies & Compliance section
       if (!_validatePoliciesSection()) {
         return;
       }
     }
-    
+
     if (_formKeys[_currentStep].currentState?.validate() ?? false) {
       // Save progress before moving to next step
       await _saveProgress(showMessage: false);
-      
+
       if (_currentStep < _stepTitles.length - 1) {
         setState(() {
           _currentStep++;
@@ -892,7 +993,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
     if (!_validatePoliciesSection()) {
       return;
     }
-    
+
     setState(() => _isLoading = true);
 
     try {
@@ -912,7 +1013,8 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
       Map<String, String> socialMediaUrls = {};
       _socialMediaPresence.forEach((platform, isSelected) {
         if (isSelected && _socialMediaControllers[platform]!.text.isNotEmpty) {
-          socialMediaUrls[platform] = _socialMediaControllers[platform]!.text.trim();
+          socialMediaUrls[platform] =
+              _socialMediaControllers[platform]!.text.trim();
         }
       });
 
@@ -931,18 +1033,19 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
         'country': _selectedCountry ?? '',
         'state': _selectedState ?? '',
         'district': _districtController.text.trim(),
-        
+
         // Chief Functionary
         'chiefFunctionaryName': _chiefNameController.text.trim(),
         'chiefFunctionaryEmail': _chiefEmailController.text.trim(),
         'chiefFunctionaryPhone': _chiefPhoneController.text.trim(),
-        
+
         // Contact Persons
         'contactPersons': contactPersons,
-        
+
         // Financial + Legal
         'financialYear': _selectedFinancialYear ?? '',
-        'grossAmountRaised': double.tryParse(_grossAmountController.text) ?? 0.0,
+        'grossAmountRaised':
+            double.tryParse(_grossAmountController.text) ?? 0.0,
         'pan': _panController.text.trim(),
         'tan': _tanController.text.trim(),
         'fcraRegistration': _fcraController.text.trim(),
@@ -957,32 +1060,36 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
         'sectorOfWork': _selectedSectors,
         'otherSectors': _otherSectorsController.text.trim(),
         'networks': _networksController.text.trim(),
-        
+
         // Social Media
         'socialMediaPresence': _socialMediaPresence,
         'socialMediaUrls': socialMediaUrls,
-        
+
         // Address
         'registeredAddress': _registeredAddressController.text.trim(),
         'correspondingAddress': _correspondingAddressController.text.trim(),
-        
+
         // UPDATED: Document metadata instead of URLs
         'documents': uploadedDocuments,
-        
+
         // Enhanced audit reports by year
         'auditReportsByYear': _auditReportsByYear,
-        
+
         // Policies & Compliance
         'policyCompliance': _policyCompliance,
         'policyReasons': _policyReasons,
-        'policyDocuments': _policyDocuments.map((key, file) => MapEntry(key, file != null ? {
-          'name': file.name,
-          'size': file.size,
-          'extension': file.extension,
-          'path': file.path,
-          'bytes': file.bytes,
-        } : null)),
-        
+        'policyDocuments': _policyDocuments.map((key, file) => MapEntry(
+            key,
+            file != null
+                ? {
+                    'name': file.name,
+                    'size': file.size,
+                    'extension': file.extension,
+                    'path': file.path,
+                    'bytes': file.bytes,
+                  }
+                : null)),
+
         // Update status
         'status': 'pending',
         'profileComplete': true,
@@ -1026,14 +1133,15 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                 color: AppTheme.accentGold,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.check, color: AppTheme.surfaceWhite, size: 32),
+              child: const Icon(Icons.check,
+                  color: AppTheme.surfaceWhite, size: 32),
             ),
             const SizedBox(height: 16),
             Text(
               'Profile Completed!',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -1049,14 +1157,15 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline, color: AppTheme.primaryRed, size: 16),
+                  const Icon(Icons.info_outline,
+                      color: AppTheme.primaryRed, size: 16),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Processing time: 5-10 working days',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.primaryRed,
-                      ),
+                            color: AppTheme.primaryRed,
+                          ),
                     ),
                   ),
                 ],
@@ -1084,7 +1193,8 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Save Progress?'),
-        content: const Text('Would you like to save your progress before logging out?'),
+        content: const Text(
+            'Would you like to save your progress before logging out?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -1137,41 +1247,41 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
           actions: [
             TextButton.icon(
               onPressed: _isSaving ? null : _saveProgress,
-              icon: _isSaving 
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.save),
+              icon: _isSaving
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.save),
               label: const Text('Save Progress'),
             ),
             const SizedBox(width: 8),
           ],
         ),
         body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                _buildProgressIndicator(),
-                Expanded(
-                  child: PageView(
-                    controller: _pageController,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [
-                      _buildSectionA(), // Basic Details
-                      _buildSectionB(), // Chief Functionary
-                      _buildSectionC(), // Contacts
-                      _buildSectionE(), // Financial
-                      _buildSectionH(), // Policies & Compliance
-                      _buildSectionF(), // Social Media
-                      _buildSectionG(), // Address
-                    ],
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                children: [
+                  _buildProgressIndicator(),
+                  Expanded(
+                    child: PageView(
+                      controller: _pageController,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: [
+                        _buildSectionA(), // Basic Details
+                        _buildSectionB(), // Chief Functionary
+                        _buildSectionC(), // Contacts
+                        _buildSectionE(), // Financial
+                        _buildSectionH(), // Policies & Compliance
+                        _buildSectionF(), // Social Media
+                        _buildSectionG(), // Address
+                      ],
+                    ),
                   ),
-                ),
-                _buildNavigationButtons(),
-              ],
-            ),
+                  _buildNavigationButtons(),
+                ],
+              ),
       ),
     );
   }
@@ -1185,21 +1295,22 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
           Text(
             _stepTitles[_currentStep],
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
             'Step ${_currentStep + 1} of ${_stepTitles.length}',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondary,
-            ),
+                  color: AppTheme.textSecondary,
+                ),
           ),
           const SizedBox(height: 16),
           LinearProgressIndicator(
             value: (_currentStep + 1) / _stepTitles.length,
             backgroundColor: AppTheme.borderGray,
-            valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryRed),
+            valueColor:
+                const AlwaysStoppedAnimation<Color>(AppTheme.primaryRed),
           ),
         ],
       ),
@@ -1232,9 +1343,9 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
             Text(
               'Complete Basic Details',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryRed,
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryRed,
+                  ),
             ),
             const SizedBox(height: 24),
             CustomTextField(
@@ -1251,10 +1362,12 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                   lastDate: DateTime.now(),
                 );
                 if (date != null) {
-                  _dateOfRegistrationController.text = '${date.day}/${date.month}/${date.year}';
+                  _dateOfRegistrationController.text =
+                      '${date.day}/${date.month}/${date.year}';
                 }
               },
-              validator: (value) => Validators.validateRequired(value, 'Date of Registration'),
+              validator: (value) =>
+                  Validators.validateRequired(value, 'Date of Registration'),
             ),
             const SizedBox(height: 20),
             DropdownButtonFormField<String>(
@@ -1263,12 +1376,15 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                 labelText: 'Country *',
                 prefixIcon: Icon(Icons.public),
               ),
-              items: _countries.map((country) => DropdownMenuItem(
-                value: country,
-                child: Text(country),
-              )).toList(),
+              items: _countries
+                  .map((country) => DropdownMenuItem(
+                        value: country,
+                        child: Text(country),
+                      ))
+                  .toList(),
               onChanged: (value) => setState(() => _selectedCountry = value),
-              validator: (value) => value == null ? 'Please select country' : null,
+              validator: (value) =>
+                  value == null ? 'Please select country' : null,
             ),
             const SizedBox(height: 20),
             DropdownButtonFormField<String>(
@@ -1277,12 +1393,15 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                 labelText: 'State *',
                 prefixIcon: Icon(Icons.location_city),
               ),
-              items: _states.map((state) => DropdownMenuItem(
-                value: state,
-                child: Text(state),
-              )).toList(),
+              items: _states
+                  .map((state) => DropdownMenuItem(
+                        value: state,
+                        child: Text(state),
+                      ))
+                  .toList(),
               onChanged: (value) => setState(() => _selectedState = value),
-              validator: (value) => value == null ? 'Please select state' : null,
+              validator: (value) =>
+                  value == null ? 'Please select state' : null,
             ),
             const SizedBox(height: 20),
             CustomTextField(
@@ -1290,7 +1409,8 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
               label: 'District *',
               hint: 'Enter district name',
               icon: Icons.location_on,
-              validator: (value) => Validators.validateRequired(value, 'District'),
+              validator: (value) =>
+                  Validators.validateRequired(value, 'District'),
             ),
           ],
         ),
@@ -1309,9 +1429,9 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
             Text(
               'Chief Functionary Details',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryRed,
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryRed,
+                  ),
             ),
             const SizedBox(height: 24),
             CustomTextField(
@@ -1319,7 +1439,8 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
               label: 'Chief Functionary Name *',
               hint: 'Enter full name',
               icon: Icons.person,
-              validator: (value) => Validators.validateRequired(value, 'Chief Functionary Name'),
+              validator: (value) =>
+                  Validators.validateRequired(value, 'Chief Functionary Name'),
             ),
             const SizedBox(height: 20),
             CustomTextField(
@@ -1382,18 +1503,20 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                       const SizedBox(width: 12),
                       Text(
                         'Contact Person ${index + 1}',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                       ),
                       if (index > 0) ...[
                         const Spacer(),
                         Text(
                           'Optional',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.textSecondary,
-                            fontStyle: FontStyle.italic,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.textSecondary,
+                                    fontStyle: FontStyle.italic,
+                                  ),
                         ),
                       ],
                     ],
@@ -1404,7 +1527,10 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                     label: 'Name ${index == 0 ? '*' : ''}',
                     hint: 'Enter contact name',
                     icon: Icons.person_outline,
-                    validator: index == 0 ? (value) => Validators.validateRequired(value, 'Contact Name') : null,
+                    validator: index == 0
+                        ? (value) =>
+                            Validators.validateRequired(value, 'Contact Name')
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   CustomTextField(
@@ -1422,7 +1548,8 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                     hint: 'Enter phone number',
                     icon: Icons.phone_outlined,
                     keyboardType: TextInputType.phone,
-                    validator: index == 0 ? Validators.validatePhoneNumber : null,
+                    validator:
+                        index == 0 ? Validators.validatePhoneNumber : null,
                   ),
                 ],
               ),
@@ -1444,9 +1571,9 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
             Text(
               'Financial & Legal Documents',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryRed,
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryRed,
+                  ),
             ),
             const SizedBox(height: 24),
             Row(
@@ -1458,43 +1585,62 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                       labelText: 'Financial Year *',
                       prefixIcon: Icon(Icons.calendar_today),
                     ),
-                    items: _financialYears.map((year) => DropdownMenuItem(
-                      value: year,
-                      child: Text(year),
-                    )).toList(),
-                    onChanged: (value) => setState(() => _selectedFinancialYear = value),
-                    validator: (value) => value == null ? 'Please select financial year' : null,
+                    items: _financialYears
+                        .map((year) => DropdownMenuItem(
+                              value: year,
+                              child: Text(year),
+                            ))
+                        .toList(),
+                    onChanged: (value) =>
+                        setState(() => _selectedFinancialYear = value),
+                    validator: (value) =>
+                        value == null ? 'Please select financial year' : null,
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: CustomTextField(
                     controller: _grossAmountController,
-                    label: 'Gross Amount Raised *',
+                    label: 'Gross Inflow *',
                     hint: 'Enter amount in INR',
                     icon: Icons.currency_rupee,
                     keyboardType: TextInputType.number,
-                    validator: (value) => Validators.validateRequired(value, 'Gross Amount'),
+                    validator: (value) =>
+                        Validators.validateRequired(value, 'Gross Inflow'),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            
+
             // Document uploads with text fields
-            _buildDocumentWithTextField('Copy of Latest ITR Acknowledgment', 'itr', null),
+            _buildDocumentWithTextField(
+                'Copy of Latest ITR Acknowledgment', 'itr', null),
             // Enhanced Audit Reports Section
             _buildAuditReportsSection(),
-            _buildDocumentWithTextField('Provident Fund Registration', 'pf_registration', null),
-            _buildDocumentWithTextField('PAN Card (Mandatory)', 'pan_doc', _panController, isMandatory: true),
+            _buildDocumentWithTextField(
+                'Provident Fund Registration', 'pf_registration', null),
+            _buildDocumentWithTextField(
+                'PAN Card (Mandatory)', 'pan_doc', _panController,
+                isMandatory: true),
             _buildDocumentWithTextField('TAN', 'tan_doc', _tanController),
-            _buildDocumentWithTextField('FCRA Registration Number', 'fcra_doc', _fcraController),
-            _buildDocumentWithTextField('FCRA Bank Account Change Letter from MHA', 'fcra_bank_change', null),
-            _buildDocumentWithTextField('CSR Registration', 'csr_doc', _csrController),
-            _buildDocumentWithTextField('DARPAN ID', 'darpan_doc', _darpanController),
-            _buildDocumentWithTextField('GST Registration (If applicable)', 'gst_doc', _gstController),
-            _buildDocumentWithTextField('Professional Tax Registration (If applicable)', 'professional_tax_doc', _professionalTaxController),
-            
+            _buildDocumentWithTextField(
+                'FCRA Registration Number', 'fcra_doc', _fcraController),
+            _buildDocumentWithTextField(
+                'FCRA Bank Account Change Letter from MHA',
+                'fcra_bank_change',
+                null),
+            _buildDocumentWithTextField(
+                'CSR Registration', 'csr_doc', _csrController),
+            _buildDocumentWithTextField(
+                'DARPAN ID', 'darpan_doc', _darpanController),
+            _buildDocumentWithTextField(
+                'GST Registration (If applicable)', 'gst_doc', _gstController),
+            _buildDocumentWithTextField(
+                'Professional Tax Registration (If applicable)',
+                'professional_tax_doc',
+                _professionalTaxController),
+
             const SizedBox(height: 20),
             DropdownButtonFormField<String>(
               value: _selectedLegalStatus,
@@ -1502,27 +1648,35 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                 labelText: 'Legal Status *',
                 prefixIcon: Icon(Icons.gavel),
               ),
-              items: _legalStatuses.map((status) => DropdownMenuItem(
-                value: status,
-                child: Text(status),
-              )).toList(),
-              onChanged: (value) => setState(() => _selectedLegalStatus = value),
-              validator: (value) => value == null ? 'Please select legal status' : null,
+              items: _legalStatuses
+                  .map((status) => DropdownMenuItem(
+                        value: status,
+                        child: Text(status),
+                      ))
+                  .toList(),
+              onChanged: (value) =>
+                  setState(() => _selectedLegalStatus = value),
+              validator: (value) =>
+                  value == null ? 'Please select legal status' : null,
             ),
             const SizedBox(height: 20),
-            
-            _buildDocumentWithTextField('Legal Status Document', 'legal_status_doc', null),
-            _buildDocumentWithTextField('12A Certification', '12a_doc', _cert12AController),
-            _buildDocumentWithTextField('80G Certificate', '80g_doc', _cert80GController),
-            _buildDocumentWithTextField('Registration Certificate', 'registration_cert_doc', _registrationCertController),
-            
+
+            _buildDocumentWithTextField(
+                'Legal Status Document', 'legal_status_doc', null),
+            _buildDocumentWithTextField(
+                '12A Certification', '12a_doc', _cert12AController),
+            _buildDocumentWithTextField(
+                '80G Certificate', '80g_doc', _cert80GController),
+            _buildDocumentWithTextField('Registration Certificate',
+                'registration_cert_doc', _registrationCertController),
+
             const SizedBox(height: 20),
-            
+
             // Additional Legal Documents Section
             _buildAdditionalLegalDocumentsSection(),
-            
+
             const SizedBox(height: 20),
-            
+
             // Sector of Work (Multi-select)
             Container(
               padding: const EdgeInsets.all(16),
@@ -1536,8 +1690,8 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                   Text(
                     'Sector of Work *',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
                   const SizedBox(height: 12),
                   Wrap(
@@ -1574,7 +1728,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
               ),
             ),
             const SizedBox(height: 20),
-            
+
             CustomTextField(
               controller: _networksController,
               label: 'List of Networks',
@@ -1599,9 +1753,9 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
             Text(
               'Social Media Presence',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryRed,
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryRed,
+                  ),
             ),
             const SizedBox(height: 24),
             ..._socialMediaPresence.keys.map((platform) {
@@ -1656,9 +1810,9 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
             Text(
               'Address Details',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryRed,
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryRed,
+                  ),
             ),
             const SizedBox(height: 24),
             CustomTextField(
@@ -1667,7 +1821,8 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
               hint: 'Enter complete registered address',
               icon: Icons.location_on,
               maxLines: 4,
-              validator: (value) => Validators.validateRequired(value, 'Registered Address'),
+              validator: (value) =>
+                  Validators.validateRequired(value, 'Registered Address'),
             ),
             const SizedBox(height: 20),
             CustomTextField(
@@ -1692,8 +1847,8 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                     child: Text(
                       'If correspondence address is same as registered address, you can leave it blank.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.primaryRed,
-                      ),
+                            color: AppTheme.primaryRed,
+                          ),
                     ),
                   ),
                 ],
@@ -1715,94 +1870,97 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
             Text(
               'Policies & Compliance',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryRed,
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryRed,
+                  ),
             ),
             const SizedBox(height: 8),
             Text(
               'Please indicate whether your organization has the following policies in place. If not, please provide a reason and upload any relevant documentation.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondary,
-              ),
+                    color: AppTheme.textSecondary,
+                  ),
             ),
             const SizedBox(height: 24),
-            
+
             // HR Policy
             _buildPolicyComplianceItem(
               'HR Policy',
               'hr_policy',
               'Human Resources policies including recruitment, performance management, and employee welfare',
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Finance Policy
             _buildPolicyComplianceItem(
               'Finance Policy',
               'finance_policy',
               'Financial management policies including budgeting, accounting, and financial controls',
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Child Protection Policy
             _buildPolicyComplianceItem(
               'Child Protection Policy',
               'child_protection_policy',
               'Policies to protect children and vulnerable populations from harm',
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Anti-Corruption Policy
             _buildPolicyComplianceItem(
               'Anti-Corruption Policy',
               'anti_corruption_policy',
               'Policies to prevent and address corruption, bribery, and unethical practices',
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Data Protection Policy
             _buildPolicyComplianceItem(
               'Data Protection Policy',
               'data_protection_policy',
               'Policies for handling personal data and ensuring privacy protection',
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Whistleblower Policy
             _buildPolicyComplianceItem(
               'Whistleblower Policy',
               'whistleblower_policy',
               'Policies for reporting misconduct and protecting whistleblowers',
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Admin Validation Workflow Info
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: AppTheme.primaryOrange.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.primaryOrange.withOpacity(0.3)),
+                border:
+                    Border.all(color: AppTheme.primaryOrange.withOpacity(0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.admin_panel_settings, color: AppTheme.primaryOrange),
+                      const Icon(Icons.admin_panel_settings,
+                          color: AppTheme.primaryOrange),
                       const SizedBox(width: 8),
                       Text(
                         'Admin Validation Workflow',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.primaryOrange,
-                        ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primaryOrange,
+                                ),
                       ),
                     ],
                   ),
@@ -1810,13 +1968,16 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                   Text(
                     'Your submitted policies will undergo the following validation process:',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.textPrimary,
-                    ),
+                          color: AppTheme.textPrimary,
+                        ),
                   ),
                   const SizedBox(height: 8),
-                  _buildWorkflowStep('1. Compliance Check', 'Review of policy completeness and format'),
-                  _buildWorkflowStep('2. Due Diligence', 'Verification of policy implementation and effectiveness'),
-                  _buildWorkflowStep('3. Desk Review', 'Final assessment and approval by admin team'),
+                  _buildWorkflowStep('1. Compliance Check',
+                      'Review of policy completeness and format'),
+                  _buildWorkflowStep('2. Due Diligence',
+                      'Verification of policy implementation and effectiveness'),
+                  _buildWorkflowStep('3. Desk Review',
+                      'Final assessment and approval by admin team'),
                 ],
               ),
             ),
@@ -1826,11 +1987,12 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
     );
   }
 
-  Widget _buildPolicyComplianceItem(String title, String policyKey, String description) {
+  Widget _buildPolicyComplianceItem(
+      String title, String policyKey, String description) {
     final hasPolicy = _policyCompliance[policyKey] ?? false;
     final reason = _policyReasons[policyKey] ?? '';
     final document = _policyDocuments[policyKey];
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1857,16 +2019,16 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                     Text(
                       title,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
-                      ),
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
+                          ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       description,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondary,
-                      ),
+                            color: AppTheme.textSecondary,
+                          ),
                     ),
                   ],
                 ),
@@ -1874,15 +2036,15 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Yes/No Toggle
           Row(
             children: [
               Text(
                 'Does your organization have this policy?',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
+                      fontWeight: FontWeight.w500,
+                    ),
               ),
               const Spacer(),
               Row(
@@ -1895,18 +2057,25 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                       });
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: hasPolicy ? AppTheme.primaryGreen : AppTheme.surfaceWhite,
+                        color: hasPolicy
+                            ? AppTheme.primaryGreen
+                            : AppTheme.surfaceWhite,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: hasPolicy ? AppTheme.primaryGreen : AppTheme.borderGray,
+                          color: hasPolicy
+                              ? AppTheme.primaryGreen
+                              : AppTheme.borderGray,
                         ),
                       ),
                       child: Text(
                         'Yes',
                         style: TextStyle(
-                          color: hasPolicy ? AppTheme.surfaceWhite : AppTheme.textSecondary,
+                          color: hasPolicy
+                              ? AppTheme.surfaceWhite
+                              : AppTheme.textSecondary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -1922,18 +2091,25 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                       });
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: !hasPolicy ? AppTheme.errorRed : AppTheme.surfaceWhite,
+                        color: !hasPolicy
+                            ? AppTheme.errorRed
+                            : AppTheme.surfaceWhite,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: !hasPolicy ? AppTheme.errorRed : AppTheme.borderGray,
+                          color: !hasPolicy
+                              ? AppTheme.errorRed
+                              : AppTheme.borderGray,
                         ),
                       ),
                       child: Text(
                         'No',
                         style: TextStyle(
-                          color: !hasPolicy ? AppTheme.surfaceWhite : AppTheme.textSecondary,
+                          color: !hasPolicy
+                              ? AppTheme.surfaceWhite
+                              : AppTheme.textSecondary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -1943,15 +2119,16 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // If No, show reason field
           if (!hasPolicy) ...[
             CustomTextField(
               controller: TextEditingController(text: reason),
               label: 'Reason for not having this policy *',
-              hint: 'Please explain why this policy is not applicable or available',
+              hint:
+                  'Please explain why this policy is not applicable or available',
               icon: Icons.info_outline,
               maxLines: 3,
               onChanged: (value) {
@@ -1966,7 +2143,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
             ),
             const SizedBox(height: 12),
           ],
-          
+
           // Document upload section
           if (hasPolicy) ...[
             Row(
@@ -1976,9 +2153,9 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                 Text(
                   'Upload Policy Document',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: AppTheme.textPrimary,
-                  ),
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.textPrimary,
+                      ),
                 ),
                 const Spacer(),
                 CustomButton(
@@ -1995,19 +2172,21 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                 decoration: BoxDecoration(
                   color: AppTheme.primaryGreen.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.3)),
+                  border:
+                      Border.all(color: AppTheme.primaryGreen.withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.check_circle, color: AppTheme.primaryGreen, size: 20),
+                    const Icon(Icons.check_circle,
+                        color: AppTheme.primaryGreen, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         document.name,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.primaryGreen,
-                          fontWeight: FontWeight.w500,
-                        ),
+                              color: AppTheme.primaryGreen,
+                              fontWeight: FontWeight.w500,
+                            ),
                       ),
                     ),
                     GestureDetector(
@@ -2016,7 +2195,8 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                           _policyDocuments[policyKey] = null;
                         });
                       },
-                      child: const Icon(Icons.close, color: AppTheme.errorRed, size: 20),
+                      child: const Icon(Icons.close,
+                          color: AppTheme.errorRed, size: 20),
                     ),
                   ],
                 ),
@@ -2060,15 +2240,15 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                 Text(
                   step,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
-                  ),
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
                 ),
                 Text(
                   description,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
+                        color: AppTheme.textSecondary,
+                      ),
                 ),
               ],
             ),
@@ -2102,9 +2282,9 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
               Text(
                 'Audit Reports for Last 3 Years with Form 10B *',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primaryRed,
-                ),
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primaryRed,
+                    ),
               ),
             ],
           ),
@@ -2112,11 +2292,11 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
           Text(
             'Upload audit reports for the last 3 financial years. Each file can be up to 25MB. Multiple files allowed per year.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppTheme.textSecondary,
-            ),
+                  color: AppTheme.textSecondary,
+                ),
           ),
           const SizedBox(height: 16),
-          
+
           // Audit reports by year
           ..._auditReportsByYear.keys.map((year) {
             return Container(
@@ -2135,8 +2315,8 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                       Text(
                         'Financial Year: $year',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
                       const Spacer(),
                       CustomButton(
@@ -2172,9 +2352,12 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                             ),
                             Text(
                               _formatFileSize(file['file_size'] ?? 0),
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppTheme.textSecondary,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: AppTheme.textSecondary,
+                                  ),
                             ),
                             const SizedBox(width: 8),
                             IconButton(
@@ -2190,9 +2373,9 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                     Text(
                       'No files uploaded for $year',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondary,
-                        fontStyle: FontStyle.italic,
-                      ),
+                            color: AppTheme.textSecondary,
+                            fontStyle: FontStyle.italic,
+                          ),
                     ),
                   ],
                 ],
@@ -2227,9 +2410,9 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
               Text(
                 'Additional Legal Documents',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primaryOrange,
-                ),
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primaryOrange,
+                    ),
               ),
             ],
           ),
@@ -2237,11 +2420,11 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
           Text(
             'Upload additional supporting documents for comprehensive verification.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppTheme.textSecondary,
-            ),
+                  color: AppTheme.textSecondary,
+                ),
           ),
           const SizedBox(height: 16),
-          
+
           // Additional documents
           _buildFileUploadTile('Annual Reports', 'annual_reports'),
           _buildFileUploadTile('Form 10B', 'form_10b'),
@@ -2254,16 +2437,17 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
   }
 
   // UPDATED: New file upload tile with document metadata
-  Widget _buildFileUploadTile(String label, String documentType, {bool isMandatory = false}) {
+  Widget _buildFileUploadTile(String label, String documentType,
+      {bool isMandatory = false}) {
     final metadata = _documentMetadata[documentType];
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         border: Border.all(
-          color: isMandatory && metadata == null 
-              ? AppTheme.errorRed 
-              : AppTheme.borderGray, 
+          color: isMandatory && metadata == null
+              ? AppTheme.errorRed
+              : AppTheme.borderGray,
           style: BorderStyle.solid,
           width: isMandatory && metadata == null ? 2 : 1,
         ),
@@ -2274,8 +2458,12 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
           Row(
             children: [
               Icon(
-                metadata != null ? Icons.check_circle : Icons.cloud_upload_outlined,
-                color: metadata != null ? AppTheme.accentGold : AppTheme.primaryRed,
+                metadata != null
+                    ? Icons.check_circle
+                    : Icons.cloud_upload_outlined,
+                color: metadata != null
+                    ? AppTheme.accentGold
+                    : AppTheme.primaryRed,
                 size: 24,
               ),
               const SizedBox(width: 12),
@@ -2286,11 +2474,11 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                     Text(
                       label,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: isMandatory && metadata == null 
-                            ? AppTheme.errorRed 
-                            : AppTheme.textPrimary,
-                      ),
+                            fontWeight: FontWeight.w600,
+                            color: isMandatory && metadata == null
+                                ? AppTheme.errorRed
+                                : AppTheme.textPrimary,
+                          ),
                     ),
                     if (metadata != null)
                       Column(
@@ -2298,15 +2486,17 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                         children: [
                           Text(
                             metadata['original_name'] ?? 'Unknown file',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.accentGold,
-                            ),
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppTheme.accentGold,
+                                    ),
                           ),
                           Text(
                             'Size: ${_formatFileSize(metadata['file_size'] ?? 0)}',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.textSecondary,
-                            ),
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppTheme.textSecondary,
+                                    ),
                           ),
                         ],
                       )
@@ -2314,8 +2504,8 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                       Text(
                         'PDF, JPG, PNG (Max ${documentType.contains('audit') ? '25MB' : '50MB'})',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textSecondary,
-                        ),
+                              color: AppTheme.textSecondary,
+                            ),
                       ),
                   ],
                 ),
@@ -2332,7 +2522,9 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
     );
   }
 
-  Widget _buildDocumentWithTextField(String label, String documentType, TextEditingController? textController, {bool isMandatory = false}) {
+  Widget _buildDocumentWithTextField(
+      String label, String documentType, TextEditingController? textController,
+      {bool isMandatory = false}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: Column(
@@ -2344,18 +2536,21 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
               label: '$label Number${isMandatory ? ' *' : ''}',
               hint: 'Enter ${label.toLowerCase()} number',
               icon: Icons.numbers,
-              validator: documentType == 'pan_doc' 
-                  ? Validators.validatePAN 
-                  : documentType == 'tan_doc' 
-                      ? Validators.validateTAN 
+              validator: documentType == 'pan_doc'
+                  ? Validators.validatePAN
+                  : documentType == 'tan_doc'
+                      ? Validators.validateTAN
                       : null,
-              textCapitalization: documentType == 'pan_doc' || documentType == 'tan_doc' 
-                  ? TextCapitalization.characters 
-                  : TextCapitalization.none,
+              textCapitalization:
+                  documentType == 'pan_doc' || documentType == 'tan_doc'
+                      ? TextCapitalization.characters
+                      : TextCapitalization.none,
             ),
             const SizedBox(height: 8),
           ],
-          _buildFileUploadTile('$label Document${isMandatory ? ' *' : ''}', documentType, isMandatory: isMandatory),
+          _buildFileUploadTile(
+              '$label Document${isMandatory ? ' *' : ''}', documentType,
+              isMandatory: isMandatory),
         ],
       ),
     );
@@ -2363,7 +2558,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
 
   Widget _buildNavigationButtons() {
     final isLastStep = _currentStep == _stepTitles.length - 1;
-    
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: const BoxDecoration(
@@ -2390,7 +2585,8 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
               onPressed: isLastStep ? _submitFinalRegistration : _nextStep,
               icon: isLastStep ? Icons.cloud_upload : Icons.arrow_forward,
               isLoading: _isLoading,
-              backgroundColor: isLastStep ? AppTheme.accentGold : AppTheme.primaryRed,
+              backgroundColor:
+                  isLastStep ? AppTheme.accentGold : AppTheme.primaryRed,
             ),
           ),
         ],
@@ -2405,11 +2601,57 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
+  // Helper method to get document display name for success messages
+  String _getDocumentDisplayName(String documentType) {
+    switch (documentType) {
+      case 'itr':
+        return 'ITR Acknowledgment';
+      case 'pf_registration':
+        return 'Provident Fund Registration';
+      case 'pan_doc':
+        return 'PAN Card';
+      case 'tan_doc':
+        return 'TAN Document';
+      case 'fcra_doc':
+        return 'FCRA Registration';
+      case 'fcra_bank_change':
+        return 'FCRA Bank Change Letter';
+      case 'csr_doc':
+        return 'CSR Registration';
+      case 'darpan_doc':
+        return 'DARPAN ID';
+      case 'gst_doc':
+        return 'GST Registration';
+      case 'professional_tax_doc':
+        return 'Professional Tax Registration';
+      case 'legal_status_doc':
+        return 'Legal Status Document';
+      case '12a_doc':
+        return '12A Certification';
+      case '80g_doc':
+        return '80G Certificate';
+      case 'registration_cert_doc':
+        return 'Registration Certificate';
+      case 'annual_reports':
+        return 'Annual Reports';
+      case 'form_10b':
+        return 'Form 10B';
+      case 'pf_receipts':
+        return 'PF Receipts';
+      case 'tan_receipts':
+        return 'TAN Receipts';
+      case 'annual_return_proof':
+        return 'Annual Return Proof';
+      default:
+        return 'Document';
+    }
+  }
+
   // Validate Financial & Legal Documents section
   bool _validateFinancialSection() {
     print('🔍 Running Financial Section Validation...');
     List<String> errors = [];
-    
+
     // Check PAN validation
     if (_panController.text.trim().isEmpty) {
       errors.add('PAN Card number is mandatory');
@@ -2423,7 +2665,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
         print('✅ PAN validation passed');
       }
     }
-    
+
     // Check TAN validation if provided
     if (_tanController.text.trim().isNotEmpty) {
       final tanError = Validators.validateTAN(_tanController.text);
@@ -2436,7 +2678,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
     } else {
       print('ℹ️ TAN is empty (optional)');
     }
-    
+
     // Check mandatory PAN document upload
     if (_documentMetadata['pan_doc'] == null) {
       errors.add('PAN Card document upload is mandatory');
@@ -2444,7 +2686,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
     } else {
       print('✅ PAN document uploaded');
     }
-    
+
     // Check audit reports for at least one year
     bool hasAuditReports = false;
     for (var year in _auditReportsByYear.keys) {
@@ -2458,14 +2700,14 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
       errors.add('At least one audit report is required for the last 3 years');
       print('❌ No audit reports uploaded');
     }
-    
+
     // Show errors if any
     print('📊 Total validation errors: ${errors.length}');
     if (errors.isNotEmpty) {
       print('🚨 Validation failed with errors: $errors');
       // Reset saving state if validation fails
       setState(() => _isSaving = false);
-      
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -2477,15 +2719,16 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
               const Text('Please fix the following issues:'),
               const SizedBox(height: 12),
               ...errors.map((error) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('• ', style: TextStyle(color: AppTheme.errorRed)),
-                    Expanded(child: Text(error)),
-                  ],
-                ),
-              )),
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('• ',
+                            style: TextStyle(color: AppTheme.errorRed)),
+                        Expanded(child: Text(error)),
+                      ],
+                    ),
+                  )),
             ],
           ),
           actions: [
@@ -2498,7 +2741,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
       );
       return false;
     }
-    
+
     print('✅ All validations passed!');
     return true;
   }
@@ -2506,18 +2749,19 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
   bool _validatePoliciesSection() {
     print('🔍 Running Policies & Compliance Section Validation...');
     List<String> errors = [];
-    
+
     // Check each policy
     for (var policyKey in _policyCompliance.keys) {
       final hasPolicy = _policyCompliance[policyKey] ?? false;
       final reason = _policyReasons[policyKey] ?? '';
       final document = _policyDocuments[policyKey];
       final policyName = _getPolicyDisplayName(policyKey);
-      
+
       if (hasPolicy) {
         // If they have the policy, they must upload a document
         if (document == null) {
-          errors.add('$policyName document upload is mandatory when policy exists');
+          errors.add(
+              '$policyName document upload is mandatory when policy exists');
           print('❌ $policyName document not uploaded');
         } else {
           print('✅ $policyName document uploaded');
@@ -2532,13 +2776,13 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
         }
       }
     }
-    
+
     // Show errors if any
     print('📊 Total validation errors: ${errors.length}');
     if (errors.isNotEmpty) {
       print('🚨 Validation failed with errors: $errors');
       setState(() => _isSaving = false);
-      
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -2550,15 +2794,16 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
               const Text('Please fix the following issues:'),
               const SizedBox(height: 12),
               ...errors.map((error) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('• ', style: TextStyle(color: AppTheme.errorRed)),
-                    Expanded(child: Text(error)),
-                  ],
-                ),
-              )),
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('• ',
+                            style: TextStyle(color: AppTheme.errorRed)),
+                        Expanded(child: Text(error)),
+                      ],
+                    ),
+                  )),
             ],
           ),
           actions: [
@@ -2571,20 +2816,27 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
       );
       return false;
     }
-    
+
     print('✅ All policy validations passed!');
     return true;
   }
 
   String _getPolicyDisplayName(String policyKey) {
     switch (policyKey) {
-      case 'hr_policy': return 'HR Policy';
-      case 'finance_policy': return 'Finance Policy';
-      case 'child_protection_policy': return 'Child Protection Policy';
-      case 'anti_corruption_policy': return 'Anti-Corruption Policy';
-      case 'data_protection_policy': return 'Data Protection Policy';
-      case 'whistleblower_policy': return 'Whistleblower Policy';
-      default: return policyKey;
+      case 'hr_policy':
+        return 'HR Policy';
+      case 'finance_policy':
+        return 'Finance Policy';
+      case 'child_protection_policy':
+        return 'Child Protection Policy';
+      case 'anti_corruption_policy':
+        return 'Anti-Corruption Policy';
+      case 'data_protection_policy':
+        return 'Data Protection Policy';
+      case 'whistleblower_policy':
+        return 'Whistleblower Policy';
+      default:
+        return policyKey;
     }
   }
 
@@ -2601,13 +2853,15 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
         // Validate files
         for (var file in result.files) {
           if (!FirestoreFileService.validateFile(file)) {
-            AppHelpers.showErrorSnackBar(context, 'Invalid file: ${file.name}. Must be PDF, JPG, or PNG under 25MB');
+            AppHelpers.showErrorSnackBar(context,
+                'Invalid file: ${file.name}. Must be PDF, JPG, or PNG under 25MB');
             return;
           }
-          
+
           // Check 25MB limit for audit reports
           if (file.size > AppConstants.maxAuditFileSize) {
-            AppHelpers.showErrorSnackBar(context, 'File ${file.name} exceeds 25MB limit');
+            AppHelpers.showErrorSnackBar(
+                context, 'File ${file.name} exceeds 25MB limit');
             return;
           }
         }
@@ -2615,7 +2869,8 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
         // Check total files limit
         final currentFiles = _auditReportsByYear[year]!.length;
         if (currentFiles + result.files.length > AppConstants.maxAuditFiles) {
-          AppHelpers.showErrorSnackBar(context, 'Maximum ${AppConstants.maxAuditFiles} files allowed per year');
+          AppHelpers.showErrorSnackBar(context,
+              'Maximum ${AppConstants.maxAuditFiles} files allowed per year');
           return;
         }
 
@@ -2660,7 +2915,8 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
 
           // Close progress dialog
           Navigator.pop(context);
-          AppHelpers.showSuccessSnackBar(context, '${result.files.length} file(s) uploaded successfully');
+          AppHelpers.showSuccessSnackBar(
+              context, '${result.files.length} file(s) uploaded successfully');
         } catch (e) {
           // Close progress dialog
           Navigator.pop(context);
@@ -2678,7 +2934,8 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Remove File'),
-        content: Text('Are you sure you want to remove "${file['original_name']}"?'),
+        content:
+            Text('Are you sure you want to remove "${file['original_name']}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -2690,7 +2947,8 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                 _auditReportsByYear[year]!.remove(file);
               });
               Navigator.pop(context);
-              AppHelpers.showSuccessSnackBar(context, 'File removed successfully');
+              AppHelpers.showSuccessSnackBar(
+                  context, 'File removed successfully');
             },
             child: const Text('Remove'),
           ),
@@ -2710,24 +2968,27 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
 
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.first;
-        
+
         // Validate file
         if (!FirestoreFileService.validateFile(file)) {
-          AppHelpers.showErrorSnackBar(context, 'Invalid file: ${file.name}. Must be PDF or DOC under 10MB');
+          AppHelpers.showErrorSnackBar(context,
+              'Invalid file: ${file.name}. Must be PDF or DOC under 10MB');
           return;
         }
-        
+
         // Check file size (10MB limit for policy documents)
         if (file.size > 10 * 1024 * 1024) {
-          AppHelpers.showErrorSnackBar(context, 'File ${file.name} exceeds 10MB limit');
+          AppHelpers.showErrorSnackBar(
+              context, 'File ${file.name} exceeds 10MB limit');
           return;
         }
 
         setState(() {
           _policyDocuments[policyKey] = file;
         });
-        
-        AppHelpers.showSuccessSnackBar(context, 'Policy document selected: ${file.name}');
+
+        AppHelpers.showSuccessSnackBar(
+            context, 'Policy document selected: ${file.name}');
       }
     } catch (e) {
       AppHelpers.showErrorSnackBar(context, 'Error selecting file: $e');

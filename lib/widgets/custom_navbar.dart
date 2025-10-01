@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../util/theme.dart';
+import '../util/responsive.dart';
 import '../providers/auth_provider.dart';
 
 class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
@@ -20,12 +22,18 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      toolbarHeight:
+          ResponsiveHelper.isMobile(context) ? 80 : 100, // Increased height
       title: Row(
         children: [
           // CPF Logo
           Container(
-            width: 40,
-            height: 40,
+            width: ResponsiveHelper.isMobile(context)
+                ? 140
+                : 180, // Increased width
+            height: ResponsiveHelper.isMobile(context)
+                ? 50
+                : 70, // Increased height
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
             ),
@@ -33,7 +41,7 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
               borderRadius: BorderRadius.circular(8),
               child: Image.asset(
                 'images/CPF_Logo.jpg',
-                fit: BoxFit.cover,
+                fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) {
                   // Fallback to text logo if image fails to load
                   return Container(
@@ -41,13 +49,14 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
                       color: AppTheme.primaryRed,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Text(
                         'CPF',
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          fontSize:
+                              ResponsiveHelper.isMobile(context) ? 14 : 18,
                         ),
                       ),
                     ),
@@ -56,28 +65,32 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  'NPO Registration Portal', // Changed from NGO to NPO
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppTheme.textPrimary,
-                      ),
-                ),
-                if (isLandingPage)
-                  Text(
-                    'Collaborative Philanthropy Foundation',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textSecondary,
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 14,
+                          tablet: 16,
+                          desktop: 18,
                         ),
-                  ),
+                      ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+                // Removed the "Collaborative Philanthropy Foundation" text as requested
               ],
             ),
           ),
+          // Empty space for right alignment
+          const Spacer(),
         ],
       ),
       backgroundColor: AppTheme.surfaceWhite,
@@ -85,7 +98,7 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
       scrolledUnderElevation: 1,
       automaticallyImplyLeading: showBackButton,
       actions: actions ?? _buildDefaultActions(context),
-      bottom: isLandingPage ? _buildLandingPageBottom(context) : null,
+      // bottom: isLandingPage ?r _buildLandingPageBottom(context) : null,
     );
   }
 
@@ -100,36 +113,104 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
             itemBuilder: (context) {
               List<PopupMenuEntry<String>> items = [
                 // Navigation Items
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'home',
                   child: ListTile(
                     leading: Icon(Icons.home, color: AppTheme.primaryRed),
-                    title: Text('Home'),
+                    title: Text(
+                      'Home',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 13,
+                          tablet: 14,
+                          desktop: 16,
+                        ),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'about',
                   child: ListTile(
                     leading: Icon(Icons.info, color: AppTheme.primaryRed),
-                    title: Text('About Us'),
+                    title: Text(
+                      'About Us',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 13,
+                          tablet: 14,
+                          desktop: 16,
+                        ),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
+                  value: 'cpf_website',
+                  child: ListTile(
+                    leading: Icon(Icons.web, color: AppTheme.primaryRed),
+                    title: Text(
+                      'CPF Website',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 13,
+                          tablet: 14,
+                          desktop: 16,
+                        ),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'onestage_website',
+                  child: ListTile(
+                    leading: Icon(Icons.web, color: AppTheme.primaryRed),
+                    title: Text(
+                      'OneStage Website',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 13,
+                          tablet: 14,
+                          desktop: 16,
+                        ),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                PopupMenuItem(
                   value: 'contact',
                   child: ListTile(
                     leading:
                         Icon(Icons.contact_mail, color: AppTheme.primaryRed),
-                    title: Text('Contact'),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'donate',
-                  child: ListTile(
-                    leading: Icon(Icons.favorite, color: AppTheme.primaryRed),
-                    title: Text('Donate'),
+                    title: Text(
+                      'Contact',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 13,
+                          tablet: 14,
+                          desktop: 16,
+                        ),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
@@ -147,23 +228,58 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
                         color: AppTheme.primaryRed,
                       ),
                       title: Text(
-                          '${_getDashboardTitle(authProvider.userRole)} Dashboard'),
+                        '${_getDashboardTitle(authProvider.userRole)} Dashboard',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 13,
+                            tablet: 14,
+                            desktop: 16,
+                          ),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'profile',
                     child: ListTile(
                       leading: Icon(Icons.person, color: AppTheme.primaryRed),
-                      title: Text('Profile'),
+                      title: Text(
+                        'Profile',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 13,
+                            tablet: 14,
+                            desktop: 16,
+                          ),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'logout',
                     child: ListTile(
                       leading: Icon(Icons.logout, color: AppTheme.primaryRed),
-                      title: Text('Logout'),
+                      title: Text(
+                        'Logout',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 13,
+                            tablet: 14,
+                            desktop: 16,
+                          ),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
@@ -171,28 +287,64 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
               } else {
                 // Add login items for non-logged-in users
                 items.addAll([
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'admin_login',
                     child: ListTile(
                       leading: Icon(Icons.admin_panel_settings,
                           color: AppTheme.primaryRed),
-                      title: Text('Admin Login'),
+                      title: Text(
+                        'Admin Login',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 13,
+                            tablet: 14,
+                            desktop: 16,
+                          ),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'ngo_login',
                     child: ListTile(
                       leading: Icon(Icons.business, color: AppTheme.primaryRed),
-                      title: Text('NGO Login'),
+                      title: Text(
+                        'NGO Login',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 13,
+                            tablet: 14,
+                            desktop: 16,
+                          ),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'donor_login',
                     child: ListTile(
                       leading: Icon(Icons.people, color: AppTheme.primaryRed),
-                      title: Text('Donor Login'),
+                      title: Text(
+                        'Donor Login',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 13,
+                            tablet: 14,
+                            desktop: 16,
+                          ),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
@@ -213,27 +365,33 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
       preferredSize: const Size.fromHeight(60),
       child: Container(
         color: AppTheme.surfaceWhite,
+        margin: const EdgeInsets.only(left: 20),
         child: Row(
           children: [
             Expanded(
-              child: _buildNavItem('Home', Icons.home, () {
+              child: _buildNavItem(context, 'Home', Icons.home, () {
                 Navigator.pushNamedAndRemoveUntil(
                     context, '/', (route) => false);
               }),
             ),
             Expanded(
-              child: _buildNavItem('About', Icons.info, () {
+              child: _buildNavItem(context, 'About Us', Icons.info, () {
                 Navigator.pushNamed(context, '/about');
               }),
             ),
             Expanded(
-              child: _buildNavItem('Contact', Icons.contact_mail, () {
-                Navigator.pushNamed(context, '/contact');
+              child: _buildNavItem(context, 'CPF Website', Icons.web, () {
+                _launchWebsite(context, 'https://cpfindia.org/');
               }),
             ),
             Expanded(
-              child: _buildNavItem('Donate', Icons.favorite, () {
-                Navigator.pushNamed(context, '/donate');
+              child: _buildNavItem(context, 'OneStage Website', Icons.web, () {
+                _launchWebsite(context, 'https://theonestage.org/');
+              }),
+            ),
+            Expanded(
+              child: _buildNavItem(context, 'Contact', Icons.contact_mail, () {
+                Navigator.pushNamed(context, '/contact');
               }),
             ),
           ],
@@ -242,22 +400,40 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  Widget _buildNavItem(String label, IconData icon, VoidCallback onTap) {
+  Widget _buildNavItem(
+      BuildContext context, String label, IconData icon, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: EdgeInsets.symmetric(
+          vertical: ResponsiveHelper.isMobile(context) ? 8 : 12,
+          horizontal: ResponsiveHelper.isMobile(context) ? 4 : 8,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: AppTheme.primaryRed, size: 20),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(
-                color: AppTheme.primaryRed,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+            Icon(
+              icon,
+              color: AppTheme.primaryRed,
+              size: ResponsiveHelper.isMobile(context) ? 16 : 20,
+            ),
+            SizedBox(height: ResponsiveHelper.isMobile(context) ? 2 : 4),
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: AppTheme.primaryRed,
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(
+                    context,
+                    mobile: 9,
+                    tablet: 10,
+                    desktop: 12,
+                  ),
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
           ],
@@ -280,8 +456,11 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
       case 'contact':
         Navigator.pushNamed(context, '/contact');
         break;
-      case 'donate':
-        Navigator.pushNamed(context, '/donate');
+      case 'cpf_website':
+        _launchWebsite(context, 'https://cpfindia.org/');
+        break;
+      case 'onestage_website':
+        _launchWebsite(context, 'https://theonestage.org/');
         break;
 
       // Login items
@@ -323,6 +502,9 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
       case UserRole.ngo:
         Navigator.pushNamed(context, '/ngo-dashboard');
         break;
+      case UserRole.donor:
+        Navigator.pushNamed(context, '/donor-dashboard');
+        break;
     }
   }
 
@@ -349,6 +531,8 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
         return Icons.admin_panel_settings;
       case UserRole.ngo:
         return Icons.business;
+      case UserRole.donor:
+        return Icons.people;
     }
   }
 
@@ -360,6 +544,25 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
         return 'Admin';
       case UserRole.ngo:
         return 'NGO';
+      case UserRole.donor:
+        return 'Donor';
+    }
+  }
+
+  void _launchWebsite(BuildContext context, String url) async {
+    try {
+      final Uri uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open $url')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error opening website: $e')),
+      );
     }
   }
 
@@ -389,8 +592,8 @@ class DashboardNavbar extends StatelessWidget implements PreferredSizeWidget {
       title: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: ResponsiveHelper.isMobile(context) ? 120 : 150,
+            height: ResponsiveHelper.isMobile(context) ? 40 : 50,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
             ),
@@ -398,7 +601,7 @@ class DashboardNavbar extends StatelessWidget implements PreferredSizeWidget {
               borderRadius: BorderRadius.circular(8),
               child: Image.asset(
                 'images/CPF_Logo.jpg',
-                fit: BoxFit.cover,
+                fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) {
                   // Fallback to text logo if image fails to load
                   return Container(
@@ -431,13 +634,29 @@ class DashboardNavbar extends StatelessWidget implements PreferredSizeWidget {
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppTheme.textPrimary,
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 14,
+                          tablet: 16,
+                          desktop: 18,
+                        ),
                       ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
                 Text(
                   '${userType.toUpperCase()} Dashboard',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppTheme.textSecondary,
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 9,
+                          tablet: 10,
+                          desktop: 12,
+                        ),
                       ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
               ],
             ),
@@ -462,61 +681,145 @@ class DashboardNavbar extends StatelessWidget implements PreferredSizeWidget {
           itemBuilder: (context) {
             List<PopupMenuEntry<String>> items = [
               // Navigation Items
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'home',
                 child: ListTile(
                   leading: Icon(Icons.home, color: AppTheme.primaryRed),
-                  title: Text('Home'),
+                  title: Text(
+                    'Home',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 13,
+                        tablet: 14,
+                        desktop: 16,
+                      ),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'about',
                 child: ListTile(
                   leading: Icon(Icons.info, color: AppTheme.primaryRed),
-                  title: Text('About Us'),
+                  title: Text(
+                    'About Us',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 13,
+                        tablet: 14,
+                        desktop: 16,
+                      ),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'contact',
                 child: ListTile(
                   leading: Icon(Icons.contact_mail, color: AppTheme.primaryRed),
-                  title: Text('Contact'),
+                  title: Text(
+                    'Contact',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 13,
+                        tablet: 14,
+                        desktop: 16,
+                      ),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
-              const PopupMenuItem(
-                value: 'donate',
+              PopupMenuItem(
+                value: 'website',
                 child: ListTile(
-                  leading: Icon(Icons.favorite, color: AppTheme.primaryRed),
-                  title: Text('Donate'),
+                  leading: Icon(Icons.web, color: AppTheme.primaryRed),
+                  title: Text(
+                    'CPF Website',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 13,
+                        tablet: 14,
+                        desktop: 16,
+                      ),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
               const PopupMenuDivider(),
               // Dashboard Actions
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'profile',
                 child: ListTile(
                   leading: Icon(Icons.person, color: AppTheme.primaryRed),
-                  title: Text('Profile'),
+                  title: Text(
+                    'Profile',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 13,
+                        tablet: 14,
+                        desktop: 16,
+                      ),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'help',
                 child: ListTile(
                   leading: Icon(Icons.help, color: AppTheme.primaryRed),
-                  title: Text('Help & Support'),
+                  title: Text(
+                    'Help & Support',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 13,
+                        tablet: 14,
+                        desktop: 16,
+                      ),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'logout',
                 child: ListTile(
                   leading: Icon(Icons.logout, color: AppTheme.primaryRed),
-                  title: Text('Logout'),
+                  title: Text(
+                    'Logout',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 13,
+                        tablet: 14,
+                        desktop: 16,
+                      ),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
@@ -541,10 +844,10 @@ class DashboardNavbar extends StatelessWidget implements PreferredSizeWidget {
       case 'contact':
         Navigator.pushNamed(context, '/contact');
         break;
-      case 'donate':
-        Navigator.pushNamed(context, '/donate');
+      case 'website':
+        _launchWebsite(context, 'https://cpfindia.org/');
         break;
-      
+
       // Dashboard actions
       case 'profile':
         _navigateToProfile(context, userType);
@@ -574,6 +877,23 @@ class DashboardNavbar extends StatelessWidget implements PreferredSizeWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Unknown user type')),
         );
+    }
+  }
+
+  void _launchWebsite(BuildContext context, String url) async {
+    try {
+      final Uri uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open $url')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error opening website: $e')),
+      );
     }
   }
 

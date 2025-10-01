@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart'; // Import the Firebase options
 import 'providers/auth_provider.dart';
 import 'providers/ngo_provider.dart';
-import 'screens/landing_page.dart';
+import 'widgets/auth_wrapper.dart';
 import 'screens/ngo_login.dart';
 import 'screens/ngo_registration.dart';
 import 'screens/ngo_dashboard.dart';
@@ -41,14 +41,14 @@ class CPFPortalApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NGOProvider()),
       ],
       child: MaterialApp(
-        title: 'CPF Portal - NGO Registration',
+        title: 'NPO Registration Portal',
         theme: cpf_theme.AppTheme.lightTheme,
         debugShowCheckedModeBanner: false,
         initialRoute: '/',
         onGenerateRoute: (settings) {
           switch (settings.name) {
             case '/':
-              return MaterialPageRoute(builder: (_) => const LandingPage());
+              return MaterialPageRoute(builder: (_) => const AuthWrapper());
             case '/ngo-login':
               return MaterialPageRoute(builder: (_) => const NGOLoginPage());
             case '/ngo-register':

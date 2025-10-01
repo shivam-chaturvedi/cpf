@@ -78,9 +78,11 @@ class _DonorLoginPageState extends State<DonorLoginPage>
             .get();
 
         if (donorProfilesDoc.exists || donorsDoc.exists) {
+          // The AuthProvider will automatically detect the donor role
+          // and the AuthWrapper will redirect to the donor dashboard
           if (mounted) {
             AppHelpers.showSuccessSnackBar(context, 'Login successful!');
-            Navigator.pushReplacementNamed(context, '/donor-dashboard');
+            Navigator.pushReplacementNamed(context, '/');
           }
         } else {
           // User exists but is not a donor

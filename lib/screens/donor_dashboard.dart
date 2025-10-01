@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cpf_portal/util/helpers.dart';
 import 'package:cpf_portal/util/theme.dart';
+import 'package:cpf_portal/util/responsive.dart';
 import 'package:cpf_portal/widgets/custom_button.dart';
 import 'package:cpf_portal/widgets/custome_card.dart';
 import 'package:cpf_portal/widgets/loading_widget.dart';
@@ -25,9 +26,11 @@ class _DonorDashboardState extends State<DonorDashboard>
 
   Map<String, dynamic>? _donorProfile;
   List<Map<String, dynamic>> _approvedNGOs = [];
+  List<Map<String, dynamic>> _filteredNGOs = [];
   List<Map<String, dynamic>> _donations = [];
   bool _isLoading = true;
   String? _error;
+  final TextEditingController _ngoSearchController = TextEditingController();
 
   @override
   void initState() {
@@ -39,6 +42,7 @@ class _DonorDashboardState extends State<DonorDashboard>
   @override
   void dispose() {
     _tabController.dispose();
+    _ngoSearchController.dispose();
     super.dispose();
   }
 
@@ -70,37 +74,46 @@ class _DonorDashboardState extends State<DonorDashboard>
         return;
       }
 
-      // Load assigned NGOs for this donor
-      final assignedNGOIds = await DonorNGOService.getAssignedNGOs(user.uid);
+      // Check if donor is verified before loading NGOs
+      final donorStatus = _donorProfile?['status'] ?? 'pending';
 
       _approvedNGOs.clear();
-      if (assignedNGOIds.isNotEmpty) {
-        for (final ngoId in assignedNGOIds) {
-          final ngoDoc =
-              await _firestore.collection('ngo_proposals').doc(ngoId).get();
+      if (donorStatus == 'approved') {
+        // Load assigned NGOs for this donor
+        final assignedNGOIds = await DonorNGOService.getAssignedNGOs(user.uid);
 
-          if (ngoDoc.exists) {
-            final data = ngoDoc.data()!;
-            data['ngoId'] = ngoId;
+        if (assignedNGOIds.isNotEmpty) {
+          for (final ngoId in assignedNGOIds) {
+            final ngoDoc =
+                await _firestore.collection('ngo_proposals').doc(ngoId).get();
+
+            if (ngoDoc.exists) {
+              final data = ngoDoc.data()!;
+              data['ngoId'] = ngoId;
+              _approvedNGOs.add(data);
+            }
+          }
+        } else {
+          // If no assignments, show all approved NGOs (fallback)
+          final ngoSnapshot = await _firestore
+              .collection('ngo_proposals')
+              .where('status', isEqualTo: 'approved')
+              .get();
+
+          for (final doc in ngoSnapshot.docs) {
+            final data = doc.data();
+            data['ngoId'] = doc.id;
             _approvedNGOs.add(data);
           }
         }
-      } else {
-        // If no assignments, show all approved NGOs (fallback)
-        final ngoSnapshot = await _firestore
-            .collection('ngo_proposals')
-            .where('status', isEqualTo: 'approved')
-            .get();
-
-        for (final doc in ngoSnapshot.docs) {
-          final data = doc.data();
-          data['ngoId'] = doc.id;
-          _approvedNGOs.add(data);
-        }
       }
+      // If donor is not approved, _approvedNGOs remains empty
 
       // Load donations (placeholder for now)
       _donations = [];
+
+      // Initialize filtered NGOs
+      _filteredNGOs = List.from(_approvedNGOs);
 
       setState(() {
         _isLoading = false;
@@ -111,6 +124,27 @@ class _DonorDashboardState extends State<DonorDashboard>
         _isLoading = false;
       });
     }
+  }
+
+  void _filterNGOs() {
+    setState(() {
+      _filteredNGOs = _approvedNGOs.where((ngo) {
+        final searchQuery = _ngoSearchController.text.toLowerCase();
+        if (searchQuery.isEmpty) return true;
+
+        final name = (ngo['organizationName'] ?? ngo['ngoName'] ?? '')
+            .toString()
+            .toLowerCase();
+        final email = (ngo['email'] ?? '').toString().toLowerCase();
+        final category = (ngo['category'] ?? '').toString().toLowerCase();
+        final location = (ngo['location'] ?? '').toString().toLowerCase();
+
+        return name.contains(searchQuery) ||
+            email.contains(searchQuery) ||
+            category.contains(searchQuery) ||
+            location.contains(searchQuery);
+      }).toList();
+    });
   }
 
   Future<void> _logout() async {
@@ -163,10 +197,35 @@ class _DonorDashboardState extends State<DonorDashboard>
                         labelColor: Colors.white,
                         unselectedLabelColor: Colors.white70,
                         indicatorColor: Colors.white,
-                        tabs: const [
-                          Tab(text: 'Dashboard', icon: Icon(Icons.dashboard)),
-                          Tab(text: 'NGOs', icon: Icon(Icons.business)),
-                          Tab(text: 'Donations', icon: Icon(Icons.favorite)),
+                        isScrollable: ResponsiveHelper.isMobile(context),
+                        tabAlignment: ResponsiveHelper.isMobile(context)
+                            ? TabAlignment.start
+                            : TabAlignment.fill,
+                        tabs: [
+                          Tab(
+                            text: 'Dashboard',
+                            icon: Icon(
+                              Icons.dashboard,
+                              size:
+                                  ResponsiveHelper.isMobile(context) ? 18 : 24,
+                            ),
+                          ),
+                          Tab(
+                            text: 'NGOs',
+                            icon: Icon(
+                              Icons.business,
+                              size:
+                                  ResponsiveHelper.isMobile(context) ? 18 : 24,
+                            ),
+                          ),
+                          Tab(
+                            text: 'Donations',
+                            icon: Icon(
+                              Icons.favorite,
+                              size:
+                                  ResponsiveHelper.isMobile(context) ? 18 : 24,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -189,7 +248,7 @@ class _DonorDashboardState extends State<DonorDashboard>
     final status = _donorProfile?['status'] ?? 'pending';
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: ResponsiveHelper.getResponsivePadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -304,130 +363,307 @@ class _DonorDashboardState extends State<DonorDashboard>
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppTheme.textPrimary,
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(
+                    context,
+                    mobile: 18,
+                    tablet: 20,
+                    desktop: 22,
+                  ),
                 ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
 
-          Row(
-            children: [
-              Expanded(
-                child: CustomCard(
-                  child: InkWell(
+          // Show different content based on verification status
+          if (status != 'approved')
+            Container(
+              padding: ResponsiveHelper.getResponsivePadding(context),
+              decoration: BoxDecoration(
+                color: AppTheme.backgroundGray,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.borderGray),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.lock_outline,
+                    color: AppTheme.textSecondary,
+                    size: ResponsiveHelper.getResponsiveFontSize(
+                      context,
+                      mobile: 32,
+                      tablet: 36,
+                      desktop: 40,
+                    ),
+                  ),
+                  SizedBox(
+                      height:
+                          ResponsiveHelper.getResponsiveSpacing(context) / 3),
+                  Text(
+                    'Account Verification Required',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary,
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 16,
+                            tablet: 18,
+                            desktop: 20,
+                          ),
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(
+                      height:
+                          ResponsiveHelper.getResponsiveSpacing(context) / 6),
+                  Text(
+                    'Quick actions will be available once your account is verified.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.textSecondary,
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 14,
+                            tablet: 16,
+                            desktop: 18,
+                          ),
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+          else
+            ResponsiveHelper.getResponsiveLayout(
+              context: context,
+              mobile: Column(
+                children: [
+                  _buildQuickActionCard(
+                    context,
+                    icon: Icons.search,
+                    title: 'Browse NGOs',
+                    subtitle: 'Find NGOs to support',
+                    color: AppTheme.primaryRed,
                     onTap: () => _tabController.animateTo(1),
-                    borderRadius: BorderRadius.circular(12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          Icon(Icons.search,
-                              color: AppTheme.primaryRed, size: 32),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Browse NGOs',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppTheme.textPrimary,
-                                ),
-                          ),
-                          Text(
-                            'Find NGOs to support',
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: AppTheme.textSecondary,
-                                    ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: CustomCard(
-                  child: InkWell(
+                  SizedBox(
+                      height:
+                          ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                  _buildQuickActionCard(
+                    context,
+                    icon: Icons.history,
+                    title: 'Donation History',
+                    subtitle: 'View past donations',
+                    color: AppTheme.primaryOrange,
                     onTap: () => _tabController.animateTo(2),
-                    borderRadius: BorderRadius.circular(12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          Icon(Icons.history,
-                              color: AppTheme.primaryOrange, size: 32),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Donation History',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppTheme.textPrimary,
-                                ),
-                          ),
-                          Text(
-                            'View past donations',
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: AppTheme.textSecondary,
-                                    ),
-                          ),
-                        ],
-                      ),
+                  ),
+                ],
+              ),
+              tablet: Row(
+                children: [
+                  Expanded(
+                    child: _buildQuickActionCard(
+                      context,
+                      icon: Icons.search,
+                      title: 'Browse NGOs',
+                      subtitle: 'Find NGOs to support',
+                      color: AppTheme.primaryRed,
+                      onTap: () => _tabController.animateTo(1),
                     ),
                   ),
-                ),
+                  SizedBox(
+                      width:
+                          ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                  Expanded(
+                    child: _buildQuickActionCard(
+                      context,
+                      icon: Icons.history,
+                      title: 'Donation History',
+                      subtitle: 'View past donations',
+                      color: AppTheme.primaryOrange,
+                      onTap: () => _tabController.animateTo(2),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+              desktop: Row(
+                children: [
+                  Expanded(
+                    child: _buildQuickActionCard(
+                      context,
+                      icon: Icons.search,
+                      title: 'Browse NGOs',
+                      subtitle: 'Find NGOs to support',
+                      color: AppTheme.primaryRed,
+                      onTap: () => _tabController.animateTo(1),
+                    ),
+                  ),
+                  SizedBox(
+                      width:
+                          ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                  Expanded(
+                    child: _buildQuickActionCard(
+                      context,
+                      icon: Icons.history,
+                      title: 'Donation History',
+                      subtitle: 'View past donations',
+                      color: AppTheme.primaryOrange,
+                      onTap: () => _tabController.animateTo(2),
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
   }
 
   Widget _buildNGOTab() {
+    final donorStatus = _donorProfile?['status'] ?? 'pending';
+
     return Column(
       children: [
-        // Search Bar
-        Container(
-          padding: const EdgeInsets.all(16),
-          color: AppTheme.surfaceWhite,
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: 'Search NGOs...',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: AppTheme.borderGray),
+        // Show verification message if donor is not approved
+        if (donorStatus != 'approved')
+          Container(
+            margin: ResponsiveHelper.getResponsivePadding(context),
+            padding: ResponsiveHelper.getResponsivePadding(context),
+            decoration: BoxDecoration(
+              color: AppTheme.warningOrange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border:
+                  Border.all(color: AppTheme.warningOrange.withOpacity(0.3)),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.verified_user_outlined,
+                  color: AppTheme.warningOrange,
+                  size: ResponsiveHelper.getResponsiveFontSize(
+                    context,
+                    mobile: 48,
+                    tablet: 56,
+                    desktop: 64,
+                  ),
+                ),
+                SizedBox(
+                    height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                Text(
+                  'Account Verification Required',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.warningOrange,
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 18,
+                          tablet: 20,
+                          desktop: 22,
+                        ),
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(
+                    height: ResponsiveHelper.getResponsiveSpacing(context) / 4),
+                Text(
+                  'To view and support NGOs, your account needs to be verified first. Please wait for admin approval.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.textPrimary,
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 14,
+                          tablet: 16,
+                          desktop: 18,
+                        ),
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(
+                    height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                Container(
+                  padding: EdgeInsets.all(
+                      ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                  decoration: BoxDecoration(
+                    color: AppTheme.backgroundGray,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: AppTheme.textSecondary,
+                        size: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 16,
+                          tablet: 18,
+                          desktop: 20,
+                        ),
+                      ),
+                      SizedBox(
+                          width:
+                              ResponsiveHelper.getResponsiveSpacing(context) /
+                                  3),
+                      Expanded(
+                        child: Text(
+                          'You will be notified via email once your account is verified.',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.textSecondary,
+                                    fontSize:
+                                        ResponsiveHelper.getResponsiveFontSize(
+                                      context,
+                                      mobile: 12,
+                                      tablet: 14,
+                                      desktop: 16,
+                                    ),
+                                  ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          )
+        else ...[
+          // Search Bar (only show if donor is approved)
+          Container(
+            padding: ResponsiveHelper.getResponsivePadding(context),
+            color: AppTheme.surfaceWhite,
+            child: TextField(
+              controller: _ngoSearchController,
+              decoration: InputDecoration(
+                hintText: 'Search NGOs...',
+                prefixIcon:
+                    const Icon(Icons.search, color: AppTheme.primaryRed),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppTheme.borderGray),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppTheme.primaryRed),
+                ),
               ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: AppTheme.primaryRed),
-              ),
+              onChanged: (value) => _filterNGOs(),
             ),
           ),
-        ),
 
-        // NGO List
-        Expanded(
-          child: _approvedNGOs.isEmpty
-              ? const EmptyStateWidget(
-                  icon: Icons.business_center,
-                  title: 'No NGOs Available',
-                  message: 'No approved NGOs found',
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _approvedNGOs.length,
-                  itemBuilder: (context, index) {
-                    final ngo = _approvedNGOs[index];
-                    return _buildNGOCard(ngo);
-                  },
-                ),
-        ),
+          // NGO List
+          Expanded(
+            child: _filteredNGOs.isEmpty
+                ? const EmptyStateWidget(
+                    icon: Icons.business_center,
+                    title: 'No NGOs Found',
+                    message: 'No NGOs match your search criteria.',
+                  )
+                : ListView.builder(
+                    padding: ResponsiveHelper.getResponsivePadding(context),
+                    itemCount: _filteredNGOs.length,
+                    itemBuilder: (context, index) {
+                      final ngo = _filteredNGOs[index];
+                      return _buildNGOCard(ngo);
+                    },
+                  ),
+          ),
+        ],
       ],
     );
   }
@@ -440,7 +676,7 @@ class _DonorDashboardState extends State<DonorDashboard>
             message: 'You haven\'t made any donations yet',
           )
         : ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: ResponsiveHelper.getResponsivePadding(context),
             itemCount: _donations.length,
             itemBuilder: (context, index) {
               final donation = _donations[index];
@@ -451,64 +687,198 @@ class _DonorDashboardState extends State<DonorDashboard>
 
   Widget _buildNGOCard(Map<String, dynamic> ngo) {
     return CustomCard(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: EdgeInsets.only(
+          bottom: ResponsiveHelper.getResponsiveSpacing(context) / 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      ngo['organizationName'] ??
-                          ngo['ngoName'] ??
-                          'Unknown NGO',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.textPrimary,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      ngo['email'] ?? 'No email',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppTheme.textSecondary,
-                          ),
-                    ),
-                  ],
+          ResponsiveHelper.getResponsiveLayout(
+            context: context,
+            mobile: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  ngo['organizationName'] ?? ngo['ngoName'] ?? 'Unknown NGO',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 16,
+                          tablet: 18,
+                          desktop: 20,
+                        ),
+                      ),
                 ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryGreen.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
-                  border:
-                      Border.all(color: AppTheme.primaryGreen.withOpacity(0.3)),
+                const SizedBox(height: 4),
+                Text(
+                  ngo['email'] ?? 'No email',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.textSecondary,
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 12,
+                          tablet: 14,
+                          desktop: 16,
+                        ),
+                      ),
                 ),
-                child: Text(
-                  'VERIFIED',
-                  style: TextStyle(
-                    color: AppTheme.primaryGreen,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
+                const SizedBox(height: 8),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: ResponsiveHelper.isMobile(context) ? 8 : 12,
+                    vertical: ResponsiveHelper.isMobile(context) ? 4 : 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                        color: AppTheme.primaryGreen.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    'VERIFIED',
+                    style: TextStyle(
+                      color: AppTheme.primaryGreen,
+                      fontWeight: FontWeight.w600,
+                      fontSize: ResponsiveHelper.isMobile(context) ? 10 : 12,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
+            tablet: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        ngo['organizationName'] ??
+                            ngo['ngoName'] ??
+                            'Unknown NGO',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textPrimary,
+                              fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                context,
+                                mobile: 16,
+                                tablet: 18,
+                                desktop: 20,
+                              ),
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        ngo['email'] ?? 'No email',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppTheme.textSecondary,
+                              fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                context,
+                                mobile: 12,
+                                tablet: 14,
+                                desktop: 16,
+                              ),
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: ResponsiveHelper.isMobile(context) ? 8 : 12,
+                    vertical: ResponsiveHelper.isMobile(context) ? 4 : 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                        color: AppTheme.primaryGreen.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    'VERIFIED',
+                    style: TextStyle(
+                      color: AppTheme.primaryGreen,
+                      fontWeight: FontWeight.w600,
+                      fontSize: ResponsiveHelper.isMobile(context) ? 10 : 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            desktop: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        ngo['organizationName'] ??
+                            ngo['ngoName'] ??
+                            'Unknown NGO',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textPrimary,
+                              fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                context,
+                                mobile: 16,
+                                tablet: 18,
+                                desktop: 20,
+                              ),
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        ngo['email'] ?? 'No email',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppTheme.textSecondary,
+                              fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                context,
+                                mobile: 12,
+                                tablet: 14,
+                                desktop: 16,
+                              ),
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: ResponsiveHelper.isMobile(context) ? 8 : 12,
+                    vertical: ResponsiveHelper.isMobile(context) ? 4 : 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                        color: AppTheme.primaryGreen.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    'VERIFIED',
+                    style: TextStyle(
+                      color: AppTheme.primaryGreen,
+                      fontWeight: FontWeight.w600,
+                      fontSize: ResponsiveHelper.isMobile(context) ? 10 : 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
           if (ngo['sectorOfWork'] != null &&
               (ngo['sectorOfWork'] as List).isNotEmpty)
             Wrap(
               children: (ngo['sectorOfWork'] as List).map((sector) {
                 return Container(
-                  margin: const EdgeInsets.only(right: 8, bottom: 4),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  margin: EdgeInsets.only(
+                    right: ResponsiveHelper.getResponsiveSpacing(context) / 3,
+                    bottom: ResponsiveHelper.getResponsiveSpacing(context) / 6,
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: ResponsiveHelper.isMobile(context) ? 6 : 8,
+                    vertical: ResponsiveHelper.isMobile(context) ? 3 : 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppTheme.primaryRed.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -518,32 +888,84 @@ class _DonorDashboardState extends State<DonorDashboard>
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppTheme.primaryRed,
                           fontWeight: FontWeight.w500,
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 10,
+                            tablet: 11,
+                            desktop: 12,
+                          ),
                         ),
                   ),
                 );
               }).toList(),
             ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: CustomButton(
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+          ResponsiveHelper.getResponsiveLayout(
+            context: context,
+            mobile: Column(
+              children: [
+                CustomButton(
                   text: 'View Details',
                   onPressed: () => _showNGODetails(ngo),
                   icon: Icons.visibility,
                   isOutlined: true,
+                  width: double.infinity,
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: CustomButton(
+                SizedBox(
+                    height: ResponsiveHelper.getResponsiveSpacing(context) / 3),
+                CustomButton(
                   text: 'Support',
                   onPressed: () => _showSupportDialog(ngo),
                   icon: Icons.favorite,
                   backgroundColor: AppTheme.primaryRed,
+                  width: double.infinity,
                 ),
-              ),
-            ],
+              ],
+            ),
+            tablet: Row(
+              children: [
+                Expanded(
+                  child: CustomButton(
+                    text: 'View Details',
+                    onPressed: () => _showNGODetails(ngo),
+                    icon: Icons.visibility,
+                    isOutlined: true,
+                  ),
+                ),
+                SizedBox(
+                    width: ResponsiveHelper.getResponsiveSpacing(context) / 3),
+                Expanded(
+                  child: CustomButton(
+                    text: 'Support',
+                    onPressed: () => _showSupportDialog(ngo),
+                    icon: Icons.favorite,
+                    backgroundColor: AppTheme.primaryRed,
+                  ),
+                ),
+              ],
+            ),
+            desktop: Row(
+              children: [
+                Expanded(
+                  child: CustomButton(
+                    text: 'View Details',
+                    onPressed: () => _showNGODetails(ngo),
+                    icon: Icons.visibility,
+                    isOutlined: true,
+                  ),
+                ),
+                SizedBox(
+                    width: ResponsiveHelper.getResponsiveSpacing(context) / 3),
+                Expanded(
+                  child: CustomButton(
+                    text: 'Support',
+                    onPressed: () => _showSupportDialog(ngo),
+                    icon: Icons.favorite,
+                    backgroundColor: AppTheme.primaryRed,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -552,21 +974,254 @@ class _DonorDashboardState extends State<DonorDashboard>
 
   Widget _buildDonationCard(Map<String, dynamic> donation) {
     return CustomCard(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: AppTheme.primaryRed.withOpacity(0.1),
-          child: Icon(Icons.favorite, color: AppTheme.primaryRed),
-        ),
-        title: Text(donation['organizationName'] ??
-            donation['ngoName'] ??
-            'Unknown NGO'),
-        subtitle: Text('Amount: \$${donation['amount'] ?? '0'}'),
-        trailing: Text(
-          donation['date'] ?? '',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.textSecondary,
+      margin: EdgeInsets.only(
+          bottom: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+      child: ResponsiveHelper.getResponsiveLayout(
+        context: context,
+        mobile: Padding(
+          padding: EdgeInsets.all(
+              ResponsiveHelper.getResponsiveSpacing(context) / 2),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: AppTheme.primaryRed.withOpacity(0.1),
+                    radius: ResponsiveHelper.isMobile(context) ? 20 : 24,
+                    child: Icon(
+                      Icons.favorite,
+                      color: AppTheme.primaryRed,
+                      size: ResponsiveHelper.isMobile(context) ? 16 : 20,
+                    ),
+                  ),
+                  SizedBox(
+                      width:
+                          ResponsiveHelper.getResponsiveSpacing(context) / 3),
+                  Expanded(
+                    child: Text(
+                      donation['organizationName'] ??
+                          donation['ngoName'] ??
+                          'Unknown NGO',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                            fontSize: ResponsiveHelper.getResponsiveFontSize(
+                              context,
+                              mobile: 14,
+                              tablet: 16,
+                              desktop: 18,
+                            ),
+                          ),
+                    ),
+                  ),
+                ],
               ),
+              SizedBox(
+                  height: ResponsiveHelper.getResponsiveSpacing(context) / 4),
+              Text(
+                'Amount: ₹${donation['amount'] ?? '0'}',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.textSecondary,
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 12,
+                        tablet: 14,
+                        desktop: 16,
+                      ),
+                    ),
+              ),
+              SizedBox(
+                  height: ResponsiveHelper.getResponsiveSpacing(context) / 8),
+              Text(
+                'Date: ${donation['date'] ?? 'Unknown'}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.textSecondary,
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 10,
+                        tablet: 12,
+                        desktop: 14,
+                      ),
+                    ),
+              ),
+            ],
+          ),
+        ),
+        tablet: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: AppTheme.primaryRed.withOpacity(0.1),
+            radius: ResponsiveHelper.isMobile(context) ? 20 : 24,
+            child: Icon(
+              Icons.favorite,
+              color: AppTheme.primaryRed,
+              size: ResponsiveHelper.isMobile(context) ? 16 : 20,
+            ),
+          ),
+          title: Text(
+            donation['organizationName'] ??
+                donation['ngoName'] ??
+                'Unknown NGO',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(
+                    context,
+                    mobile: 14,
+                    tablet: 16,
+                    desktop: 18,
+                  ),
+                ),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Amount: ₹${donation['amount'] ?? '0'}',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.textSecondary,
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 12,
+                        tablet: 14,
+                        desktop: 16,
+                      ),
+                    ),
+              ),
+              Text(
+                'Date: ${donation['date'] ?? 'Unknown'}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.textSecondary,
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 10,
+                        tablet: 12,
+                        desktop: 14,
+                      ),
+                    ),
+              ),
+            ],
+          ),
+        ),
+        desktop: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: AppTheme.primaryRed.withOpacity(0.1),
+            radius: ResponsiveHelper.isMobile(context) ? 20 : 24,
+            child: Icon(
+              Icons.favorite,
+              color: AppTheme.primaryRed,
+              size: ResponsiveHelper.isMobile(context) ? 16 : 20,
+            ),
+          ),
+          title: Text(
+            donation['organizationName'] ??
+                donation['ngoName'] ??
+                'Unknown NGO',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(
+                    context,
+                    mobile: 14,
+                    tablet: 16,
+                    desktop: 18,
+                  ),
+                ),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Amount: ₹${donation['amount'] ?? '0'}',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.textSecondary,
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 12,
+                        tablet: 14,
+                        desktop: 16,
+                      ),
+                    ),
+              ),
+              Text(
+                'Date: ${donation['date'] ?? 'Unknown'}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.textSecondary,
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 10,
+                        tablet: 12,
+                        desktop: 14,
+                      ),
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return CustomCard(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: EdgeInsets.all(
+              ResponsiveHelper.getResponsiveSpacing(context) / 2),
+          child: Column(
+            children: [
+              Icon(
+                icon,
+                color: color,
+                size: ResponsiveHelper.getResponsiveFontSize(
+                  context,
+                  mobile: 28,
+                  tablet: 32,
+                  desktop: 36,
+                ),
+              ),
+              SizedBox(
+                  height: ResponsiveHelper.getResponsiveSpacing(context) / 4),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 14,
+                        tablet: 16,
+                        desktop: 18,
+                      ),
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(
+                  height: ResponsiveHelper.getResponsiveSpacing(context) / 8),
+              Text(
+                subtitle,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.textSecondary,
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 11,
+                        tablet: 12,
+                        desktop: 14,
+                      ),
+                    ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -599,29 +1254,112 @@ class _DonorDashboardState extends State<DonorDashboard>
 
   Widget _buildDetailField(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 140,
-            child: Text(
+      padding: EdgeInsets.only(
+          bottom: ResponsiveHelper.getResponsiveSpacing(context) / 8),
+      child: ResponsiveHelper.getResponsiveLayout(
+        context: context,
+        mobile: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
               '$label:',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: AppTheme.textPrimary,
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(
+                      context,
+                      mobile: 12,
+                      tablet: 14,
+                      desktop: 16,
+                    ),
                   ),
             ),
-          ),
-          Expanded(
-            child: Text(
+            SizedBox(
+                height: ResponsiveHelper.getResponsiveSpacing(context) / 16),
+            Text(
               value,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppTheme.textSecondary,
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(
+                      context,
+                      mobile: 12,
+                      tablet: 14,
+                      desktop: 16,
+                    ),
                   ),
             ),
-          ),
-        ],
+          ],
+        ),
+        tablet: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: ResponsiveHelper.isMobile(context) ? 120 : 140,
+              child: Text(
+                '$label:',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 12,
+                        tablet: 14,
+                        desktop: 16,
+                      ),
+                    ),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                value,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.textSecondary,
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 12,
+                        tablet: 14,
+                        desktop: 16,
+                      ),
+                    ),
+              ),
+            ),
+          ],
+        ),
+        desktop: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: ResponsiveHelper.isMobile(context) ? 120 : 140,
+              child: Text(
+                '$label:',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 12,
+                        tablet: 14,
+                        desktop: 16,
+                      ),
+                    ),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                value,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.textSecondary,
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 12,
+                        tablet: 14,
+                        desktop: 16,
+                      ),
+                    ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -732,214 +1470,351 @@ class _DonorDashboardState extends State<DonorDashboard>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(ngo['organizationName'] ?? ngo['ngoName'] ?? 'NGO Details'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // NGO Header with Status
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryGreen.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border:
-                      Border.all(color: AppTheme.primaryGreen.withOpacity(0.3)),
+        title: Text(
+          ngo['organizationName'] ?? ngo['ngoName'] ?? 'NGO Details',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getResponsiveFontSize(
+              context,
+              mobile: 16,
+              tablet: 18,
+              desktop: 20,
+            ),
+          ),
+        ),
+        content: SizedBox(
+          width: ResponsiveHelper.isMobile(context)
+              ? MediaQuery.of(context).size.width * 0.9
+              : ResponsiveHelper.isTablet(context)
+                  ? MediaQuery.of(context).size.width * 0.7
+                  : MediaQuery.of(context).size.width * 0.5,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // NGO Header with Status
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: AppTheme.primaryGreen.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.verified,
+                          color: AppTheme.primaryGreen, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'VERIFIED NGO',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primaryGreen,
+                            ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Row(
-                  children: [
-                    Icon(Icons.verified,
-                        color: AppTheme.primaryGreen, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      'VERIFIED NGO',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryGreen,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
 
-              // Basic Information
-              Text(
-                'Basic Information',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              _buildDetailField('Organization Name',
-                  ngo['organizationName'] ?? ngo['ngoName'] ?? 'N/A'),
-              _buildDetailField('Email', ngo['email'] ?? 'N/A'),
-              _buildDetailField('Phone', ngo['phone'] ?? 'N/A'),
-              _buildDetailField('Website', ngo['website'] ?? 'N/A'),
-              _buildDetailField(
-                  'Registration Number', ngo['registrationNumber'] ?? 'N/A'),
-              _buildDetailField('PAN Number', ngo['panNumber'] ?? 'N/A'),
-              _buildDetailField(
-                  '12A Certificate', ngo['certificate12A'] ?? 'N/A'),
-              _buildDetailField(
-                  '80G Certificate', ngo['certificate80G'] ?? 'N/A'),
+                const SizedBox(height: 16),
 
-              const SizedBox(height: 16),
-
-              // Address Information
-              Text(
-                'Address Information',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              _buildDetailField('Address', ngo['address'] ?? 'N/A'),
-              _buildDetailField('City', ngo['city'] ?? 'N/A'),
-              _buildDetailField('State', ngo['state'] ?? 'N/A'),
-              _buildDetailField('Pincode', ngo['pincode'] ?? 'N/A'),
-              _buildDetailField('Country', ngo['country'] ?? 'N/A'),
-
-              const SizedBox(height: 16),
-
-              // Work Information
-              Text(
-                'Work Information',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              _buildDetailField('Category', ngo['category'] ?? 'N/A'),
-              _buildDetailField('Sectors of Work',
-                  (ngo['sectorOfWork'] as List?)?.join(', ') ?? 'N/A'),
-              _buildDetailField(
-                  'Target Beneficiaries', ngo['targetBeneficiaries'] ?? 'N/A'),
-              _buildDetailField(
-                  'Geographic Focus', ngo['geographicFocus'] ?? 'N/A'),
-
-              const SizedBox(height: 16),
-
-              // Financial Information
-              Text(
-                'Financial Information',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              _buildDetailField('Annual Budget', ngo['annualBudget'] ?? 'N/A'),
-              _buildDetailField(
-                  'Funding Sources', ngo['fundingSources'] ?? 'N/A'),
-              _buildDetailField(
-                  'Bank Account Number', ngo['bankAccountNumber'] ?? 'N/A'),
-              _buildDetailField('Bank Name', ngo['bankName'] ?? 'N/A'),
-              _buildDetailField('IFSC Code', ngo['ifscCode'] ?? 'N/A'),
-
-              const SizedBox(height: 16),
-
-              // Contact Person Information
-              Text(
-                'Contact Person',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              _buildDetailField(
-                  'Contact Person Name', ngo['contactPersonName'] ?? 'N/A'),
-              _buildDetailField('Contact Person Designation',
-                  ngo['contactPersonDesignation'] ?? 'N/A'),
-              _buildDetailField(
-                  'Contact Person Email', ngo['contactPersonEmail'] ?? 'N/A'),
-              _buildDetailField(
-                  'Contact Person Phone', ngo['contactPersonPhone'] ?? 'N/A'),
-
-              const SizedBox(height: 16),
-
-              // Description
-              if (ngo['description'] != null &&
-                  ngo['description'].toString().isNotEmpty) ...[
+                // Basic Information
                 Text(
-                  'Description',
+                  'Basic Information',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppTheme.textPrimary,
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 16,
+                          tablet: 18,
+                          desktop: 20,
+                        ),
                       ),
                 ),
                 const SizedBox(height: 8),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.backgroundGray,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppTheme.borderGray),
-                  ),
-                  child: Text(
-                    ngo['description'],
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                _buildDetailField('Organization Name',
+                    ngo['organizationName'] ?? ngo['ngoName'] ?? 'N/A'),
+                _buildDetailField('Email', ngo['email'] ?? 'N/A'),
+                _buildDetailField('Phone', ngo['phone'] ?? 'N/A'),
+                _buildDetailField('Website', ngo['website'] ?? 'N/A'),
+                _buildDetailField(
+                    'Registration Number', ngo['registrationNumber'] ?? 'N/A'),
+                _buildDetailField('PAN Number', ngo['panNumber'] ?? 'N/A'),
+                _buildDetailField(
+                    '12A Certificate', ngo['certificate12A'] ?? 'N/A'),
+                _buildDetailField(
+                    '80G Certificate', ngo['certificate80G'] ?? 'N/A'),
+
+                const SizedBox(height: 16),
+
+                // Address Information
+                Text(
+                  'Address Information',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 16,
+                          tablet: 18,
+                          desktop: 20,
+                        ),
+                      ),
+                ),
+                const SizedBox(height: 8),
+                _buildDetailField('Address', ngo['address'] ?? 'N/A'),
+                _buildDetailField('City', ngo['city'] ?? 'N/A'),
+                _buildDetailField('State', ngo['state'] ?? 'N/A'),
+                _buildDetailField('Pincode', ngo['pincode'] ?? 'N/A'),
+                _buildDetailField('Country', ngo['country'] ?? 'N/A'),
+
+                const SizedBox(height: 16),
+
+                // Work Information
+                Text(
+                  'Work Information',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 16,
+                          tablet: 18,
+                          desktop: 20,
+                        ),
+                      ),
+                ),
+                const SizedBox(height: 8),
+                _buildDetailField('Category', ngo['category'] ?? 'N/A'),
+                _buildDetailField('Sectors of Work',
+                    (ngo['sectorOfWork'] as List?)?.join(', ') ?? 'N/A'),
+                _buildDetailField('Target Beneficiaries',
+                    ngo['targetBeneficiaries'] ?? 'N/A'),
+                _buildDetailField(
+                    'Geographic Focus', ngo['geographicFocus'] ?? 'N/A'),
+
+                const SizedBox(height: 16),
+
+                // Financial Information
+                Text(
+                  'Financial Information',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 16,
+                          tablet: 18,
+                          desktop: 20,
+                        ),
+                      ),
+                ),
+                const SizedBox(height: 8),
+                _buildDetailField(
+                    'Annual Budget', ngo['annualBudget'] ?? 'N/A'),
+                _buildDetailField(
+                    'Funding Sources', ngo['fundingSources'] ?? 'N/A'),
+                _buildDetailField(
+                    'Bank Account Number', ngo['bankAccountNumber'] ?? 'N/A'),
+                _buildDetailField('Bank Name', ngo['bankName'] ?? 'N/A'),
+                _buildDetailField('IFSC Code', ngo['ifscCode'] ?? 'N/A'),
+
+                const SizedBox(height: 16),
+
+                // Contact Person Information
+                Text(
+                  'Contact Person',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 16,
+                          tablet: 18,
+                          desktop: 20,
+                        ),
+                      ),
+                ),
+                const SizedBox(height: 8),
+                _buildDetailField(
+                    'Contact Person Name', ngo['contactPersonName'] ?? 'N/A'),
+                _buildDetailField('Contact Person Designation',
+                    ngo['contactPersonDesignation'] ?? 'N/A'),
+                _buildDetailField(
+                    'Contact Person Email', ngo['contactPersonEmail'] ?? 'N/A'),
+                _buildDetailField(
+                    'Contact Person Phone', ngo['contactPersonPhone'] ?? 'N/A'),
+
+                const SizedBox(height: 16),
+
+                // Description
+                if (ngo['description'] != null &&
+                    ngo['description'].toString().isNotEmpty) ...[
+                  Text(
+                    'Description',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
                           color: AppTheme.textPrimary,
-                          height: 1.5,
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 16,
+                            tablet: 18,
+                            desktop: 20,
+                          ),
                         ),
                   ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // Registration Dates
-              Text(
-                'Registration Information',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.backgroundGray,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.borderGray),
                     ),
-              ),
-              const SizedBox(height: 8),
-              _buildDetailField(
-                  'Registration Date', ngo['registrationDate'] ?? 'N/A'),
-              _buildDetailField(
-                  'Application Date',
-                  ngo['createdAt'] != null
-                      ? (ngo['createdAt'] as Timestamp)
-                          .toDate()
-                          .toString()
-                          .split(' ')[0]
-                      : 'N/A'),
-              _buildDetailField(
-                  'Approval Date',
-                  ngo['approvedAt'] != null
-                      ? (ngo['approvedAt'] as Timestamp)
-                          .toDate()
-                          .toString()
-                          .split(' ')[0]
-                      : 'N/A'),
-            ],
+                    child: Text(
+                      ngo['description'],
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppTheme.textPrimary,
+                            height: 1.5,
+                          ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Registration Dates
+                Text(
+                  'Registration Information',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 16,
+                          tablet: 18,
+                          desktop: 20,
+                        ),
+                      ),
+                ),
+                const SizedBox(height: 8),
+                _buildDetailField(
+                    'Registration Date', ngo['registrationDate'] ?? 'N/A'),
+                _buildDetailField(
+                    'Application Date',
+                    ngo['createdAt'] != null
+                        ? (ngo['createdAt'] as Timestamp)
+                            .toDate()
+                            .toString()
+                            .split(' ')[0]
+                        : 'N/A'),
+                _buildDetailField(
+                    'Approval Date',
+                    ngo['approvedAt'] != null
+                        ? (ngo['approvedAt'] as Timestamp)
+                            .toDate()
+                            .toString()
+                            .split(' ')[0]
+                        : 'N/A'),
+              ],
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showSupportDialog(ngo);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryRed,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Support NGO'),
-          ),
-        ],
+        actions: ResponsiveHelper.isMobile(context)
+            ? [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showSupportDialog(ngo);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryRed,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(
+                        vertical:
+                            ResponsiveHelper.getResponsiveSpacing(context) / 3,
+                      ),
+                    ),
+                    child: Text(
+                      'Support NGO',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 14,
+                          tablet: 16,
+                          desktop: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                    height: ResponsiveHelper.getResponsiveSpacing(context) / 4),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Close',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 14,
+                          tablet: 16,
+                          desktop: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ]
+            : [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Close',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 14,
+                        tablet: 16,
+                        desktop: 18,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                    width: ResponsiveHelper.getResponsiveSpacing(context) / 3),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _showSupportDialog(ngo);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryRed,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(
+                      vertical:
+                          ResponsiveHelper.getResponsiveSpacing(context) / 3,
+                    ),
+                  ),
+                  child: Text(
+                    'Support NGO',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 14,
+                        tablet: 16,
+                        desktop: 18,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
       ),
     );
   }
@@ -1056,28 +1931,28 @@ class _DonorDashboardState extends State<DonorDashboard>
                     _buildContactItem(
                       Icons.web,
                       'Website',
-                      'www.cpf.org.in',
-                      () => _launchWebsite('https://www.cpf.org.in'),
+                      'www.cpfindia.org',
+                      () => _launchWebsite('https://www.cpfindia.org'),
                     ),
                     const SizedBox(height: 12),
                     _buildContactItem(
                       Icons.email,
                       'Email',
-                      'info@cpf.org.in',
-                      () => _launchEmail('info@cpf.org.in'),
+                      'info@cpfindia.org',
+                      () => _launchEmail('info@cpfindia.org'),
                     ),
                     const SizedBox(height: 12),
                     _buildContactItem(
                       Icons.phone,
                       'Phone',
-                      '+91-XXXXXXXXXX',
-                      () => _launchPhone('+91XXXXXXXXXX'),
+                      '+91-11-XXXX-XXXX',
+                      () => _launchPhone('+9111XXXXXXXX'),
                     ),
                     const SizedBox(height: 12),
                     _buildContactItem(
                       Icons.location_on,
                       'Address',
-                      'CPF Office, City, State, India',
+                      '418, 4th Floor, World Trade Centre,\nBarakhamba Road, New Delhi - 110001',
                       null,
                     ),
 

@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../providers/ngo_provider.dart';
 import '../providers/auth_provider.dart';
 import '../util/theme.dart';
+import '../util/responsive.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/custome_card.dart';
@@ -125,6 +126,20 @@ class _AdminDashboardState extends State<AdminDashboard>
     });
   }
 
+  void _clearFilters() {
+    setState(() {
+      _selectedStatus = 'all';
+      _selectedCategory = 'all';
+      _selectedLocation = 'all';
+      _startDate = null;
+      _endDate = null;
+      _searchController.clear();
+      _donorSearchController.clear();
+    });
+    _applyFilters();
+    _filterDonors();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -143,21 +158,110 @@ class _AdminDashboardState extends State<AdminDashboard>
                   color: AppTheme.primaryRed,
                   child: TabBar(
                     controller: _tabController,
-                    isScrollable: true,
+                    isScrollable: ResponsiveHelper.isMobile(context),
                     indicatorColor: Colors.white,
                     labelColor: Colors.white,
                     unselectedLabelColor: Colors.white70,
-                    tabs: const [
-                      Tab(text: 'Overview', icon: Icon(Icons.dashboard)),
+                    tabAlignment: ResponsiveHelper.isMobile(context)
+                        ? TabAlignment.start
+                        : TabAlignment.center,
+                    tabs: [
                       Tab(
-                          text: 'Validation Tracker',
-                          icon: Icon(Icons.assignment_turned_in)),
-                      Tab(text: 'NGO Management', icon: Icon(Icons.business)),
-                      Tab(text: 'Donor Approval', icon: Icon(Icons.people)),
-                      Tab(text: 'Renewal Alerts', icon: Icon(Icons.schedule)),
-                      Tab(text: 'Analytics', icon: Icon(Icons.analytics)),
-                      Tab(text: 'Donor-NGO Assignment', icon: Icon(Icons.link)),
-                      Tab(text: 'Certificates', icon: Icon(Icons.verified)),
+                        text: 'Overview',
+                        icon: Icon(
+                          Icons.dashboard,
+                          size: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 16,
+                            tablet: 18,
+                            desktop: 20,
+                          ),
+                        ),
+                      ),
+                      Tab(
+                        text: 'Validation Tracker',
+                        icon: Icon(
+                          Icons.assignment_turned_in,
+                          size: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 16,
+                            tablet: 18,
+                            desktop: 20,
+                          ),
+                        ),
+                      ),
+                      Tab(
+                        text: 'NGO Management',
+                        icon: Icon(
+                          Icons.business,
+                          size: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 16,
+                            tablet: 18,
+                            desktop: 20,
+                          ),
+                        ),
+                      ),
+                      Tab(
+                        text: 'Donor Approval',
+                        icon: Icon(
+                          Icons.people,
+                          size: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 16,
+                            tablet: 18,
+                            desktop: 20,
+                          ),
+                        ),
+                      ),
+                      Tab(
+                        text: 'Renewal Alerts',
+                        icon: Icon(
+                          Icons.schedule,
+                          size: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 16,
+                            tablet: 18,
+                            desktop: 20,
+                          ),
+                        ),
+                      ),
+                      Tab(
+                        text: 'Analytics',
+                        icon: Icon(
+                          Icons.analytics,
+                          size: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 16,
+                            tablet: 18,
+                            desktop: 20,
+                          ),
+                        ),
+                      ),
+                      Tab(
+                        text: 'Donor-NGO Assignment',
+                        icon: Icon(
+                          Icons.link,
+                          size: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 16,
+                            tablet: 18,
+                            desktop: 20,
+                          ),
+                        ),
+                      ),
+                      Tab(
+                        text: 'Certificates',
+                        icon: Icon(
+                          Icons.verified,
+                          size: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 16,
+                            tablet: 18,
+                            desktop: 20,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -183,100 +287,282 @@ class _AdminDashboardState extends State<AdminDashboard>
 
   Widget _buildOverviewTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: ResponsiveHelper.getResponsivePadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Statistics Cards
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
+          ResponsiveHelper.getResponsiveLayout(
+            context: context,
+            mobile: Column(
+              children: [
+                _buildStatCard(
                   'Total NGOs',
                   _validationStats['total']?.toString() ?? '0',
                   Icons.business,
                   Colors.blue,
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildStatCard(
+                SizedBox(
+                    height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                _buildStatCard(
                   'Pending Review',
                   _validationStats['pending']?.toString() ?? '0',
                   Icons.pending,
                   Colors.orange,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
+                SizedBox(
+                    height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                _buildStatCard(
                   'Approved',
                   _validationStats['approved']?.toString() ?? '0',
                   Icons.check_circle,
                   Colors.green,
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildStatCard(
+                SizedBox(
+                    height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                _buildStatCard(
                   'Rejected',
                   _validationStats['rejected']?.toString() ?? '0',
                   Icons.cancel,
                   Colors.red,
                 ),
-              ),
-            ],
+              ],
+            ),
+            tablet: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        'Total NGOs',
+                        _validationStats['total']?.toString() ?? '0',
+                        Icons.business,
+                        Colors.blue,
+                      ),
+                    ),
+                    SizedBox(
+                        width:
+                            ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                    Expanded(
+                      child: _buildStatCard(
+                        'Pending Review',
+                        _validationStats['pending']?.toString() ?? '0',
+                        Icons.pending,
+                        Colors.orange,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(
+                    height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        'Approved',
+                        _validationStats['approved']?.toString() ?? '0',
+                        Icons.check_circle,
+                        Colors.green,
+                      ),
+                    ),
+                    SizedBox(
+                        width:
+                            ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                    Expanded(
+                      child: _buildStatCard(
+                        'Rejected',
+                        _validationStats['rejected']?.toString() ?? '0',
+                        Icons.cancel,
+                        Colors.red,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            desktop: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        'Total NGOs',
+                        _validationStats['total']?.toString() ?? '0',
+                        Icons.business,
+                        Colors.blue,
+                      ),
+                    ),
+                    SizedBox(
+                        width:
+                            ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                    Expanded(
+                      child: _buildStatCard(
+                        'Pending Review',
+                        _validationStats['pending']?.toString() ?? '0',
+                        Icons.pending,
+                        Colors.orange,
+                      ),
+                    ),
+                    SizedBox(
+                        width:
+                            ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                    Expanded(
+                      child: _buildStatCard(
+                        'Approved',
+                        _validationStats['approved']?.toString() ?? '0',
+                        Icons.check_circle,
+                        Colors.green,
+                      ),
+                    ),
+                    SizedBox(
+                        width:
+                            ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                    Expanded(
+                      child: _buildStatCard(
+                        'Rejected',
+                        _validationStats['rejected']?.toString() ?? '0',
+                        Icons.cancel,
+                        Colors.red,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context)),
 
           // Quick Actions
           Text(
             'Quick Actions',
-            style: Theme.of(context).textTheme.headlineMedium,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(
+                    context,
+                    mobile: 20,
+                    tablet: 24,
+                    desktop: 28,
+                  ),
+                ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: CustomButton(
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+          ResponsiveHelper.getResponsiveLayout(
+            context: context,
+            mobile: Column(
+              children: [
+                CustomButton(
                   text: 'Review Pending NGOs',
                   onPressed: () => _tabController.animateTo(1),
                   backgroundColor: AppTheme.primaryRed,
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: CustomButton(
+                SizedBox(
+                    height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                CustomButton(
                   text: 'Approve Donors',
                   onPressed: () => _tabController.animateTo(3),
                   backgroundColor: AppTheme.primaryOrange,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: CustomButton(
+                SizedBox(
+                    height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                CustomButton(
                   text: 'Check Renewals',
                   onPressed: () => _tabController.animateTo(4),
                   backgroundColor: AppTheme.accentGold,
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: CustomButton(
+                SizedBox(
+                    height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                CustomButton(
                   text: 'View Analytics',
                   onPressed: () => _tabController.animateTo(5),
                   backgroundColor: Colors.purple,
                 ),
-              ),
-            ],
+              ],
+            ),
+            tablet: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: CustomButton(
+                        text: 'Review Pending NGOs',
+                        onPressed: () => _tabController.animateTo(1),
+                        backgroundColor: AppTheme.primaryRed,
+                      ),
+                    ),
+                    SizedBox(
+                        width:
+                            ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                    Expanded(
+                      child: CustomButton(
+                        text: 'Approve Donors',
+                        onPressed: () => _tabController.animateTo(3),
+                        backgroundColor: AppTheme.primaryOrange,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(
+                    height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                Row(
+                  children: [
+                    Expanded(
+                      child: CustomButton(
+                        text: 'Check Renewals',
+                        onPressed: () => _tabController.animateTo(4),
+                        backgroundColor: AppTheme.accentGold,
+                      ),
+                    ),
+                    SizedBox(
+                        width:
+                            ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                    Expanded(
+                      child: CustomButton(
+                        text: 'View Analytics',
+                        onPressed: () => _tabController.animateTo(5),
+                        backgroundColor: Colors.purple,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            desktop: Row(
+              children: [
+                Expanded(
+                  child: CustomButton(
+                    text: 'Review Pending NGOs',
+                    onPressed: () => _tabController.animateTo(1),
+                    backgroundColor: AppTheme.primaryRed,
+                  ),
+                ),
+                SizedBox(
+                    width: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                Expanded(
+                  child: CustomButton(
+                    text: 'Approve Donors',
+                    onPressed: () => _tabController.animateTo(3),
+                    backgroundColor: AppTheme.primaryOrange,
+                  ),
+                ),
+                SizedBox(
+                    width: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                Expanded(
+                  child: CustomButton(
+                    text: 'Check Renewals',
+                    onPressed: () => _tabController.animateTo(4),
+                    backgroundColor: AppTheme.accentGold,
+                  ),
+                ),
+                SizedBox(
+                    width: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                Expanded(
+                  child: CustomButton(
+                    text: 'View Analytics',
+                    onPressed: () => _tabController.animateTo(5),
+                    backgroundColor: Colors.purple,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -394,15 +680,22 @@ class _AdminDashboardState extends State<AdminDashboard>
 
   Widget _buildAnalyticsTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: ResponsiveHelper.getResponsivePadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Analytics Dashboard',
-            style: Theme.of(context).textTheme.headlineMedium,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(
+                    context,
+                    mobile: 20,
+                    tablet: 24,
+                    desktop: 28,
+                  ),
+                ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
           _buildAnalyticsCharts(),
         ],
       ),
@@ -413,22 +706,48 @@ class _AdminDashboardState extends State<AdminDashboard>
       String title, String value, IconData icon, Color color) {
     return CustomCard(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: ResponsiveHelper.getResponsivePadding(context).copyWith(
+          top: ResponsiveHelper.getResponsiveSpacing(context) / 2,
+          bottom: ResponsiveHelper.getResponsiveSpacing(context) / 2,
+        ),
         child: Column(
           children: [
-            Icon(icon, size: 32, color: color),
-            const SizedBox(height: 8),
+            Icon(
+              icon,
+              size: ResponsiveHelper.getResponsiveFontSize(
+                context,
+                mobile: 28,
+                tablet: 32,
+                desktop: 36,
+              ),
+              color: color,
+            ),
+            SizedBox(
+                height: ResponsiveHelper.getResponsiveSpacing(context) / 4),
             Text(
               value,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     color: color,
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(
+                      context,
+                      mobile: 24,
+                      tablet: 28,
+                      desktop: 32,
+                    ),
                   ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(
+                height: ResponsiveHelper.getResponsiveSpacing(context) / 8),
             Text(
               title,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.grey[600],
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(
+                      context,
+                      mobile: 12,
+                      tablet: 14,
+                      desktop: 16,
+                    ),
                   ),
               textAlign: TextAlign.center,
             ),
@@ -490,15 +809,51 @@ class _AdminDashboardState extends State<AdminDashboard>
   Widget _buildFiltersSection() {
     return CustomCard(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: ResponsiveHelper.getResponsivePadding(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Filters',
-              style: Theme.of(context).textTheme.titleLarge,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Filters',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 18,
+                          tablet: 20,
+                          desktop: 22,
+                        ),
+                      ),
+                ),
+                TextButton.icon(
+                  onPressed: _clearFilters,
+                  icon: Icon(
+                    Icons.clear_all,
+                    size: ResponsiveHelper.getResponsiveFontSize(
+                      context,
+                      mobile: 16,
+                      tablet: 18,
+                      desktop: 20,
+                    ),
+                  ),
+                  label: Text(
+                    'Clear All',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 14,
+                        tablet: 16,
+                        desktop: 18,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(
+                height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
 
             // Search
             CustomTextField(
@@ -508,17 +863,27 @@ class _AdminDashboardState extends State<AdminDashboard>
               icon: Icons.search,
               onChanged: (value) => _applyFilters(),
             ),
-            const SizedBox(height: 16),
+            SizedBox(
+                height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
 
             // Filter dropdowns
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
+            ResponsiveHelper.getResponsiveLayout(
+              context: context,
+              mobile: Column(
+                children: [
+                  DropdownButtonFormField<String>(
                     value: _selectedStatus,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Status',
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
+                      labelStyle: TextStyle(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 14,
+                          tablet: 16,
+                          desktop: 18,
+                        ),
+                      ),
                     ),
                     items: const [
                       DropdownMenuItem(value: 'all', child: Text('All Status')),
@@ -536,14 +901,22 @@ class _AdminDashboardState extends State<AdminDashboard>
                       _applyFilters();
                     },
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
+                  SizedBox(
+                      height:
+                          ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                  DropdownButtonFormField<String>(
                     value: _selectedCategory,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Category',
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
+                      labelStyle: TextStyle(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 14,
+                          tablet: 16,
+                          desktop: 18,
+                        ),
+                      ),
                     ),
                     items: const [
                       DropdownMenuItem(
@@ -561,16 +934,164 @@ class _AdminDashboardState extends State<AdminDashboard>
                       _applyFilters();
                     },
                   ),
-                ),
-              ],
+                ],
+              ),
+              tablet: Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedStatus,
+                      decoration: InputDecoration(
+                        labelText: 'Status',
+                        border: const OutlineInputBorder(),
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 14,
+                            tablet: 16,
+                            desktop: 18,
+                          ),
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                            value: 'all', child: Text('All Status')),
+                        DropdownMenuItem(
+                            value: 'pending', child: Text('Pending')),
+                        DropdownMenuItem(
+                            value: 'under_review', child: Text('Under Review')),
+                        DropdownMenuItem(
+                            value: 'approved', child: Text('Approved')),
+                        DropdownMenuItem(
+                            value: 'rejected', child: Text('Rejected')),
+                      ],
+                      onChanged: (value) {
+                        setState(() => _selectedStatus = value!);
+                        _applyFilters();
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                      width:
+                          ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedCategory,
+                      decoration: InputDecoration(
+                        labelText: 'Category',
+                        border: const OutlineInputBorder(),
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 14,
+                            tablet: 16,
+                            desktop: 18,
+                          ),
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                            value: 'all', child: Text('All Categories')),
+                        DropdownMenuItem(
+                            value: 'education', child: Text('Education')),
+                        DropdownMenuItem(
+                            value: 'health', child: Text('Health')),
+                        DropdownMenuItem(
+                            value: 'environment', child: Text('Environment')),
+                        DropdownMenuItem(
+                            value: 'social', child: Text('Social Welfare')),
+                      ],
+                      onChanged: (value) {
+                        setState(() => _selectedCategory = value!);
+                        _applyFilters();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              desktop: Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedStatus,
+                      decoration: InputDecoration(
+                        labelText: 'Status',
+                        border: const OutlineInputBorder(),
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 14,
+                            tablet: 16,
+                            desktop: 18,
+                          ),
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                            value: 'all', child: Text('All Status')),
+                        DropdownMenuItem(
+                            value: 'pending', child: Text('Pending')),
+                        DropdownMenuItem(
+                            value: 'under_review', child: Text('Under Review')),
+                        DropdownMenuItem(
+                            value: 'approved', child: Text('Approved')),
+                        DropdownMenuItem(
+                            value: 'rejected', child: Text('Rejected')),
+                      ],
+                      onChanged: (value) {
+                        setState(() => _selectedStatus = value!);
+                        _applyFilters();
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                      width:
+                          ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedCategory,
+                      decoration: InputDecoration(
+                        labelText: 'Category',
+                        border: const OutlineInputBorder(),
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 14,
+                            tablet: 16,
+                            desktop: 18,
+                          ),
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                            value: 'all', child: Text('All Categories')),
+                        DropdownMenuItem(
+                            value: 'education', child: Text('Education')),
+                        DropdownMenuItem(
+                            value: 'health', child: Text('Health')),
+                        DropdownMenuItem(
+                            value: 'environment', child: Text('Environment')),
+                        DropdownMenuItem(
+                            value: 'social', child: Text('Social Welfare')),
+                      ],
+                      onChanged: (value) {
+                        setState(() => _selectedCategory = value!);
+                        _applyFilters();
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(
+                height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
 
             // Date filters
-            Row(
-              children: [
-                Expanded(
-                  child: InkWell(
+            ResponsiveHelper.getResponsiveLayout(
+              context: context,
+              mobile: Column(
+                children: [
+                  InkWell(
                     onTap: () async {
                       final date = await showDatePicker(
                         context: context,
@@ -584,20 +1105,46 @@ class _AdminDashboardState extends State<AdminDashboard>
                       }
                     },
                     child: InputDecorator(
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Start Date',
-                        border: OutlineInputBorder(),
-                        suffixIcon: Icon(Icons.calendar_today),
+                        border: const OutlineInputBorder(),
+                        suffixIcon: Icon(
+                          Icons.calendar_today,
+                          size: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 16,
+                            tablet: 18,
+                            desktop: 20,
+                          ),
+                        ),
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 14,
+                            tablet: 16,
+                            desktop: 18,
+                          ),
+                        ),
                       ),
-                      child: Text(_startDate != null
-                          ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
-                          : 'Select date'),
+                      child: Text(
+                        _startDate != null
+                            ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
+                            : 'Select date',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 14,
+                            tablet: 16,
+                            desktop: 18,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: InkWell(
+                  SizedBox(
+                      height:
+                          ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                  InkWell(
                     onTap: () async {
                       final date = await showDatePicker(
                         context: context,
@@ -611,18 +1158,266 @@ class _AdminDashboardState extends State<AdminDashboard>
                       }
                     },
                     child: InputDecorator(
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'End Date',
-                        border: OutlineInputBorder(),
-                        suffixIcon: Icon(Icons.calendar_today),
+                        border: const OutlineInputBorder(),
+                        suffixIcon: Icon(
+                          Icons.calendar_today,
+                          size: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 16,
+                            tablet: 18,
+                            desktop: 20,
+                          ),
+                        ),
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 14,
+                            tablet: 16,
+                            desktop: 18,
+                          ),
+                        ),
                       ),
-                      child: Text(_endDate != null
-                          ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
-                          : 'Select date'),
+                      child: Text(
+                        _endDate != null
+                            ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
+                            : 'Select date',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 14,
+                            tablet: 16,
+                            desktop: 18,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
+              tablet: Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: _startDate ?? DateTime.now(),
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now(),
+                        );
+                        if (date != null) {
+                          setState(() => _startDate = date);
+                          _applyFilters();
+                        }
+                      },
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'Start Date',
+                          border: const OutlineInputBorder(),
+                          suffixIcon: Icon(
+                            Icons.calendar_today,
+                            size: ResponsiveHelper.getResponsiveFontSize(
+                              context,
+                              mobile: 16,
+                              tablet: 18,
+                              desktop: 20,
+                            ),
+                          ),
+                          labelStyle: TextStyle(
+                            fontSize: ResponsiveHelper.getResponsiveFontSize(
+                              context,
+                              mobile: 14,
+                              tablet: 16,
+                              desktop: 18,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          _startDate != null
+                              ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
+                              : 'Select date',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getResponsiveFontSize(
+                              context,
+                              mobile: 14,
+                              tablet: 16,
+                              desktop: 18,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                      width:
+                          ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: _endDate ?? DateTime.now(),
+                          firstDate: _startDate ?? DateTime(2020),
+                          lastDate: DateTime.now(),
+                        );
+                        if (date != null) {
+                          setState(() => _endDate = date);
+                          _applyFilters();
+                        }
+                      },
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'End Date',
+                          border: const OutlineInputBorder(),
+                          suffixIcon: Icon(
+                            Icons.calendar_today,
+                            size: ResponsiveHelper.getResponsiveFontSize(
+                              context,
+                              mobile: 16,
+                              tablet: 18,
+                              desktop: 20,
+                            ),
+                          ),
+                          labelStyle: TextStyle(
+                            fontSize: ResponsiveHelper.getResponsiveFontSize(
+                              context,
+                              mobile: 14,
+                              tablet: 16,
+                              desktop: 18,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          _endDate != null
+                              ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
+                              : 'Select date',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getResponsiveFontSize(
+                              context,
+                              mobile: 14,
+                              tablet: 16,
+                              desktop: 18,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              desktop: Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: _startDate ?? DateTime.now(),
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now(),
+                        );
+                        if (date != null) {
+                          setState(() => _startDate = date);
+                          _applyFilters();
+                        }
+                      },
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'Start Date',
+                          border: const OutlineInputBorder(),
+                          suffixIcon: Icon(
+                            Icons.calendar_today,
+                            size: ResponsiveHelper.getResponsiveFontSize(
+                              context,
+                              mobile: 16,
+                              tablet: 18,
+                              desktop: 20,
+                            ),
+                          ),
+                          labelStyle: TextStyle(
+                            fontSize: ResponsiveHelper.getResponsiveFontSize(
+                              context,
+                              mobile: 14,
+                              tablet: 16,
+                              desktop: 18,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          _startDate != null
+                              ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
+                              : 'Select date',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getResponsiveFontSize(
+                              context,
+                              mobile: 14,
+                              tablet: 16,
+                              desktop: 18,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                      width:
+                          ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: _endDate ?? DateTime.now(),
+                          firstDate: _startDate ?? DateTime(2020),
+                          lastDate: DateTime.now(),
+                        );
+                        if (date != null) {
+                          setState(() => _endDate = date);
+                          _applyFilters();
+                        }
+                      },
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'End Date',
+                          border: const OutlineInputBorder(),
+                          suffixIcon: Icon(
+                            Icons.calendar_today,
+                            size: ResponsiveHelper.getResponsiveFontSize(
+                              context,
+                              mobile: 16,
+                              tablet: 18,
+                              desktop: 20,
+                            ),
+                          ),
+                          labelStyle: TextStyle(
+                            fontSize: ResponsiveHelper.getResponsiveFontSize(
+                              context,
+                              mobile: 14,
+                              tablet: 16,
+                              desktop: 18,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          _endDate != null
+                              ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
+                              : 'Select date',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getResponsiveFontSize(
+                              context,
+                              mobile: 14,
+                              tablet: 16,
+                              desktop: 18,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -1157,38 +1952,215 @@ class _AdminDashboardState extends State<AdminDashboard>
   Widget _buildAnalyticsCharts() {
     return Column(
       children: [
-        // NGO Status Distribution
+        // Key Metrics Overview
+        ResponsiveHelper.getResponsiveLayout(
+          context: context,
+          mobile: Column(
+            children: [
+              _buildAnalyticsStatCard(
+                'Total NGOs',
+                _validationStats['total']?.toString() ?? '0',
+                Icons.business,
+                Colors.blue,
+              ),
+              SizedBox(
+                  height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+              _buildAnalyticsStatCard(
+                'Pending Review',
+                _validationStats['pending']?.toString() ?? '0',
+                Icons.pending,
+                Colors.orange,
+              ),
+              SizedBox(
+                  height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+              _buildAnalyticsStatCard(
+                'Approved NGOs',
+                _validationStats['approved']?.toString() ?? '0',
+                Icons.check_circle,
+                Colors.green,
+              ),
+              SizedBox(
+                  height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+              _buildAnalyticsStatCard(
+                'Rejected NGOs',
+                _validationStats['rejected']?.toString() ?? '0',
+                Icons.cancel,
+                Colors.red,
+              ),
+            ],
+          ),
+          tablet: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildAnalyticsStatCard(
+                      'Total NGOs',
+                      _validationStats['total']?.toString() ?? '0',
+                      Icons.business,
+                      Colors.blue,
+                    ),
+                  ),
+                  SizedBox(
+                      width:
+                          ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                  Expanded(
+                    child: _buildAnalyticsStatCard(
+                      'Pending Review',
+                      _validationStats['pending']?.toString() ?? '0',
+                      Icons.pending,
+                      Colors.orange,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(
+                  height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildAnalyticsStatCard(
+                      'Approved NGOs',
+                      _validationStats['approved']?.toString() ?? '0',
+                      Icons.check_circle,
+                      Colors.green,
+                    ),
+                  ),
+                  SizedBox(
+                      width:
+                          ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                  Expanded(
+                    child: _buildAnalyticsStatCard(
+                      'Rejected NGOs',
+                      _validationStats['rejected']?.toString() ?? '0',
+                      Icons.cancel,
+                      Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          desktop: Row(
+            children: [
+              Expanded(
+                child: _buildAnalyticsStatCard(
+                  'Total NGOs',
+                  _validationStats['total']?.toString() ?? '0',
+                  Icons.business,
+                  Colors.blue,
+                ),
+              ),
+              SizedBox(
+                  width: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+              Expanded(
+                child: _buildAnalyticsStatCard(
+                  'Pending Review',
+                  _validationStats['pending']?.toString() ?? '0',
+                  Icons.pending,
+                  Colors.orange,
+                ),
+              ),
+              SizedBox(
+                  width: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+              Expanded(
+                child: _buildAnalyticsStatCard(
+                  'Approved NGOs',
+                  _validationStats['approved']?.toString() ?? '0',
+                  Icons.check_circle,
+                  Colors.green,
+                ),
+              ),
+              SizedBox(
+                  width: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+              Expanded(
+                child: _buildAnalyticsStatCard(
+                  'Rejected NGOs',
+                  _validationStats['rejected']?.toString() ?? '0',
+                  Icons.cancel,
+                  Colors.red,
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context)),
+
+        // NGO Status Distribution Chart
         CustomCard(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: ResponsiveHelper.getResponsivePadding(context),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'NGO Status Distribution',
-                  style: Theme.of(context).textTheme.titleLarge,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 18,
+                          tablet: 20,
+                          desktop: 22,
+                        ),
+                      ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(
+                    height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
                 _buildStatusChart(),
               ],
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
 
-        // Monthly Applications
+        // Monthly Applications Chart
         CustomCard(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: ResponsiveHelper.getResponsivePadding(context),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Monthly Applications',
-                  style: Theme.of(context).textTheme.titleLarge,
+                  'Monthly Applications Trend',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 18,
+                          tablet: 20,
+                          desktop: 22,
+                        ),
+                      ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(
+                    height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
                 _buildMonthlyChart(),
+              ],
+            ),
+          ),
+        ),
+        SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+
+        // Category Distribution
+        CustomCard(
+          child: Padding(
+            padding: ResponsiveHelper.getResponsivePadding(context),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'NGO Category Distribution',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 18,
+                          tablet: 20,
+                          desktop: 22,
+                        ),
+                      ),
+                ),
+                SizedBox(
+                    height: ResponsiveHelper.getResponsiveSpacing(context) / 2),
+                _buildCategoryChart(),
               ],
             ),
           ),
@@ -1220,12 +2192,22 @@ class _AdminDashboardState extends State<AdminDashboard>
     return Row(
       children: [
         SizedBox(
-          width: 80,
-          child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
+          width: ResponsiveHelper.isMobile(context) ? 60 : 80,
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(
+                    context,
+                    mobile: 12,
+                    tablet: 14,
+                    desktop: 16,
+                  ),
+                ),
+          ),
         ),
         Expanded(
           child: Container(
-            height: 20,
+            height: ResponsiveHelper.isMobile(context) ? 16 : 20,
             decoration: BoxDecoration(
               color: color.withOpacity(0.2),
               borderRadius: BorderRadius.circular(10),
@@ -1242,16 +2224,168 @@ class _AdminDashboardState extends State<AdminDashboard>
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: ResponsiveHelper.getResponsiveSpacing(context) / 4),
         Text(
           '$value (${(percentage * 100).toStringAsFixed(1)}%)',
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: ResponsiveHelper.getResponsiveFontSize(
+                  context,
+                  mobile: 12,
+                  tablet: 14,
+                  desktop: 16,
+                ),
+              ),
         ),
       ],
     );
+  }
+
+  Widget _buildAnalyticsStatCard(
+      String title, String value, IconData icon, Color color) {
+    return CustomCard(
+      child: Padding(
+        padding: ResponsiveHelper.getResponsivePadding(context).copyWith(
+          top: ResponsiveHelper.getResponsiveSpacing(context) / 2,
+          bottom: ResponsiveHelper.getResponsiveSpacing(context) / 2,
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: ResponsiveHelper.getResponsiveFontSize(
+                context,
+                mobile: 24,
+                tablet: 28,
+                desktop: 32,
+              ),
+              color: color,
+            ),
+            SizedBox(
+                height: ResponsiveHelper.getResponsiveSpacing(context) / 4),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: color,
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(
+                      context,
+                      mobile: 20,
+                      tablet: 24,
+                      desktop: 28,
+                    ),
+                  ),
+            ),
+            SizedBox(
+                height: ResponsiveHelper.getResponsiveSpacing(context) / 8),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey[600],
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(
+                      context,
+                      mobile: 12,
+                      tablet: 14,
+                      desktop: 16,
+                    ),
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryChart() {
+    // This would typically fetch category data from Firestore
+    // For now, showing a placeholder with sample data
+    final categories = {
+      'Education': 25,
+      'Health': 20,
+      'Environment': 15,
+      'Social Welfare': 30,
+      'Other': 10,
+    };
+
+    final total = categories.values.reduce((a, b) => a + b);
+
+    return Column(
+      children: categories.entries.map((entry) {
+        final percentage = total > 0 ? (entry.value / total) : 0.0;
+        final color = _getCategoryColor(entry.key);
+
+        return Padding(
+          padding: EdgeInsets.only(
+              bottom: ResponsiveHelper.getResponsiveSpacing(context) / 4),
+          child: Row(
+            children: [
+              SizedBox(
+                width: ResponsiveHelper.isMobile(context) ? 60 : 80,
+                child: Text(
+                  entry.key,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 12,
+                          tablet: 14,
+                          desktop: 16,
+                        ),
+                      ),
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  height: ResponsiveHelper.isMobile(context) ? 16 : 20,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: percentage,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(
+                  width: ResponsiveHelper.getResponsiveSpacing(context) / 4),
+              Text(
+                '${entry.value} (${(percentage * 100).toStringAsFixed(1)}%)',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 12,
+                        tablet: 14,
+                        desktop: 16,
+                      ),
+                    ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Color _getCategoryColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'education':
+        return Colors.blue;
+      case 'health':
+        return Colors.green;
+      case 'environment':
+        return Colors.teal;
+      case 'social welfare':
+        return Colors.purple;
+      default:
+        return Colors.grey;
+    }
   }
 
   Widget _buildMonthlyChart() {

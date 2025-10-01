@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:cpf_portal/util/helpers.dart';
 import 'package:cpf_portal/util/theme.dart';
+import 'package:cpf_portal/util/responsive.dart';
 import 'package:cpf_portal/widgets/custome_card.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_navbar.dart';
@@ -46,7 +47,7 @@ class _BannerImageRotatorState extends State<BannerImageRotator> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 500,
+      height: ResponsiveHelper.getResponsiveImageHeight(context),
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -65,9 +66,9 @@ class _BannerImageRotatorState extends State<BannerImageRotator> {
           child: Image.asset(
             _images[_currentIndex],
             key: ValueKey<String>(_images[_currentIndex]),
-            fit: BoxFit.cover,
+            fit: BoxFit.contain,
             width: double.infinity,
-            height: 500,
+            height: double.infinity,
             errorBuilder: (context, error, stackTrace) {
               return Container(
                 color: AppTheme.primaryRed,
@@ -165,11 +166,10 @@ class _LandingPageState extends State<LandingPage>
           children: [
             Container(key: _heroSectionKey, child: _buildHeroSection()),
             Container(key: _benefitsSectionKey, child: _buildBenefitsSection()),
-            _buildStatsSection(),
             _buildVideoSection(),
             _buildTestimonialsSection(),
             Container(key: _servicesSectionKey, child: _buildServicesSection()),
-            _buildImpactSection(),
+            // _buildImpactSection(), // Hidden as requested
             _buildPartnersSection(),
             Container(key: _faqSectionKey, child: _buildFAQSection()),
             Container(key: _supportSectionKey, child: _buildSupportSection()),
@@ -204,20 +204,37 @@ class _LandingPageState extends State<LandingPage>
                         color: AppTheme.surfaceWhite,
                         fontWeight: FontWeight.bold,
                         height: 1.2,
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          mobile: 24,
+                          tablet: 32,
+                          desktop: 40,
+                        ),
                       ),
                   textAlign: TextAlign.center,
                 ),
 
-                const SizedBox(height: 24),
+                SizedBox(
+                    height: ResponsiveHelper.getResponsiveSpacing(context)),
 
                 // Overview text from blueprint
                 Container(
-                  constraints: const BoxConstraints(maxWidth: 800),
+                  constraints: BoxConstraints(
+                    maxWidth: ResponsiveHelper.isMobile(context)
+                        ? double.infinity
+                        : 800,
+                  ),
                   child: Text(
                     'The Collaborative Philanthropy Foundation (CPF) is a forward-looking Section 8 company that builds upon the legacy and experience of Charities Aid Foundation India, a trusted entity that has been serving the development sector since 1998. CPF operates as an impact-led, research and data-driven organization, offering customized support to a wide array of stakeholders including companies, CSR boards, civil society organizations, and philanthropic foundations.',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: AppTheme.surfaceWhite.withOpacity(0.9),
                           height: 1.6,
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 14,
+                            tablet: 16,
+                            desktop: 18,
+                          ),
                         ),
                     textAlign: TextAlign.center,
                   ),
@@ -240,50 +257,70 @@ class _LandingPageState extends State<LandingPage>
                 const SizedBox(height: 40),
 
                 // CTA Buttons from wireframe
-                AppHelpers.isMobile(context)
-                    ? Column(
-                        children: [
-                          CustomButton(
-                            text: 'Register Your NGO',
-                            onPressed: () =>
-                                Navigator.pushNamed(context, '/ngo-register'),
-                            icon: Icons.app_registration,
-                            backgroundColor: AppTheme.primaryOrange,
-                            width: double.infinity,
-                          ),
-                          const SizedBox(height: 16),
-                          CustomButton(
-                            text: 'Learn More',
-                            onPressed: () =>
-                                _scrollToSection(_benefitsSectionKey),
-                            icon: Icons.info_outline,
-                            isOutlined: true,
-                            backgroundColor: AppTheme.surfaceWhite,
-                            width: double.infinity,
-                          ),
-                        ],
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CustomButton(
-                            text: 'Register Your NGO',
-                            onPressed: () =>
-                                Navigator.pushNamed(context, '/ngo-register'),
-                            icon: Icons.app_registration,
-                            backgroundColor: AppTheme.primaryOrange,
-                          ),
-                          const SizedBox(width: 16),
-                          CustomButton(
-                            text: 'Learn More',
-                            onPressed: () =>
-                                _scrollToSection(_benefitsSectionKey),
-                            icon: Icons.info_outline,
-                            isOutlined: true,
-                            backgroundColor: AppTheme.surfaceWhite,
-                          ),
-                        ],
+                ResponsiveHelper.getResponsiveLayout(
+                  context: context,
+                  mobile: Column(
+                    children: [
+                      CustomButton(
+                        text: 'Register Your NGO',
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/ngo-register'),
+                        icon: Icons.app_registration,
+                        backgroundColor: AppTheme.primaryOrange,
+                        width: double.infinity,
                       ),
+                      const SizedBox(height: 16),
+                      CustomButton(
+                        text: 'Learn More',
+                        onPressed: () => _scrollToSection(_benefitsSectionKey),
+                        icon: Icons.info_outline,
+                        isOutlined: true,
+                        backgroundColor: AppTheme.surfaceWhite,
+                        width: double.infinity,
+                      ),
+                    ],
+                  ),
+                  tablet: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CustomButton(
+                        text: 'Register Your NGO',
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/ngo-register'),
+                        icon: Icons.app_registration,
+                        backgroundColor: AppTheme.primaryOrange,
+                      ),
+                      const SizedBox(width: 16),
+                      CustomButton(
+                        text: 'Learn More',
+                        onPressed: () => _scrollToSection(_benefitsSectionKey),
+                        icon: Icons.info_outline,
+                        isOutlined: true,
+                        backgroundColor: AppTheme.surfaceWhite,
+                      ),
+                    ],
+                  ),
+                  desktop: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CustomButton(
+                        text: 'Register Your NGO',
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/ngo-register'),
+                        icon: Icons.app_registration,
+                        backgroundColor: AppTheme.primaryOrange,
+                      ),
+                      const SizedBox(width: 16),
+                      CustomButton(
+                        text: 'Learn More',
+                        onPressed: () => _scrollToSection(_benefitsSectionKey),
+                        icon: Icons.info_outline,
+                        isOutlined: true,
+                        backgroundColor: AppTheme.surfaceWhite,
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -413,7 +450,9 @@ class _LandingPageState extends State<LandingPage>
       padding: AppHelpers.getResponsivePadding(context),
       child: Column(
         children: [
+          // Centered header
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(
                 Icons.business_center,
@@ -431,35 +470,79 @@ class _LandingPageState extends State<LandingPage>
             ],
           ),
           const SizedBox(height: 16),
+          // Centered description
           Text(
             'We provide specialized services to support donors and stakeholders in evaluating and partnering with credible NGOs.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: AppTheme.textSecondary,
                   height: 1.6,
                 ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: AppHelpers.isDesktop(context) ? 2 : 1,
-            crossAxisSpacing: 24,
-            mainAxisSpacing: 24,
-            childAspectRatio: AppHelpers.isDesktop(context) ? 2 : 1.5,
-            children: [
-              _buildServiceCard(
-                Icons.fact_check,
-                'Due Diligence Review',
-                'Comprehensive assessment of an NGO\'s legal status, governance, financials, and operations, including field visits and AML/CFT checks.',
-                AppTheme.primaryRed,
-              ),
-              _buildServiceCard(
-                Icons.verified,
-                'Compliance Checks',
-                'Verification of statutory documents like 12A, 80G, FCRA, CSR-1, audit reports, and other key filings.',
-                AppTheme.primaryOrange,
-              ),
-            ],
+          ResponsiveHelper.getResponsiveLayout(
+            context: context,
+            mobile: Column(
+              children: [
+                _buildServiceCard(
+                  Icons.fact_check,
+                  'Due Diligence Review',
+                  'Comprehensive assessment of an NGO\'s legal status, governance, financials, and operations, including field visits and AML/CFT checks.',
+                  AppTheme.primaryRed,
+                ),
+                const SizedBox(height: 24),
+                _buildServiceCard(
+                  Icons.verified,
+                  'Compliance Checks',
+                  'Verification of statutory documents like 12A, 80G, FCRA, CSR-1, audit reports, and other key filings.',
+                  AppTheme.primaryOrange,
+                ),
+              ],
+            ),
+            tablet: GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 24,
+              mainAxisSpacing: 24,
+              childAspectRatio: 1.2,
+              children: [
+                _buildServiceCard(
+                  Icons.fact_check,
+                  'Due Diligence Review',
+                  'Comprehensive assessment of an NGO\'s legal status, governance, financials, and operations, including field visits and AML/CFT checks.',
+                  AppTheme.primaryRed,
+                ),
+                _buildServiceCard(
+                  Icons.verified,
+                  'Compliance Checks',
+                  'Verification of statutory documents like 12A, 80G, FCRA, CSR-1, audit reports, and other key filings.',
+                  AppTheme.primaryOrange,
+                ),
+              ],
+            ),
+            desktop: GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 32,
+              mainAxisSpacing: 32,
+              childAspectRatio: 1.5,
+              children: [
+                _buildServiceCard(
+                  Icons.fact_check,
+                  'Due Diligence Review',
+                  'Comprehensive assessment of an NGO\'s legal status, governance, financials, and operations, including field visits and AML/CFT checks.',
+                  AppTheme.primaryRed,
+                ),
+                _buildServiceCard(
+                  Icons.verified,
+                  'Compliance Checks',
+                  'Verification of statutory documents like 12A, 80G, FCRA, CSR-1, audit reports, and other key filings.',
+                  AppTheme.primaryOrange,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -469,42 +552,40 @@ class _LandingPageState extends State<LandingPage>
   Widget _buildServiceCard(
       IconData icon, String title, String description, Color color) {
     return CustomCard(
-      child: Row(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          // Centered icon
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
               icon,
-              size: 32,
+              size: 40,
               color: color,
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
-                      ),
+          const SizedBox(height: 20),
+          // Centered text content
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  description,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.textSecondary,
-                        height: 1.5,
-                      ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            description,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.textSecondary,
+                  height: 1.5,
                 ),
-              ],
-            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -715,107 +796,9 @@ class _LandingPageState extends State<LandingPage>
     );
   }
 
-  Widget _buildStatsSection() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
-      child: Column(
-        children: [
-          Text(
-            'Our Impact in Numbers',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary,
-                ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 40),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  '500+',
-                  'NGOs Registered',
-                  Icons.business,
-                  Colors.blue,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildStatCard(
-                  '₹50M+',
-                  'Funds Disbursed',
-                  Icons.attach_money,
-                  Colors.green,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildStatCard(
-                  '25+',
-                  'Years Experience',
-                  Icons.timeline,
-                  Colors.orange,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildStatCard(
-                  '1000+',
-                  'Lives Impacted',
-                  Icons.favorite,
-                  Colors.red,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard(
-      String number, String label, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icon, size: 40, color: color),
-          const SizedBox(height: 16),
-          Text(
-            number,
-            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildVideoSection() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+      padding: ResponsiveHelper.getResponsivePadding(context),
       child: Column(
         children: [
           Text(
@@ -823,20 +806,32 @@ class _LandingPageState extends State<LandingPage>
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppTheme.textPrimary,
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(
+                    context,
+                    mobile: 20,
+                    tablet: 24,
+                    desktop: 28,
+                  ),
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context)),
           Text(
             'Watch how we\'re making a difference in communities across India',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: AppTheme.textSecondary,
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(
+                    context,
+                    mobile: 14,
+                    tablet: 16,
+                    desktop: 18,
+                  ),
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 40),
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context)),
           Container(
-            height: 300,
+            height: ResponsiveHelper.isMobile(context) ? 200 : 300,
             width: double.infinity,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
@@ -903,7 +898,7 @@ class _LandingPageState extends State<LandingPage>
 
   Widget _buildTestimonialsSection() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+      padding: ResponsiveHelper.getResponsivePadding(context),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -921,13 +916,19 @@ class _LandingPageState extends State<LandingPage>
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppTheme.textPrimary,
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(
+                    context,
+                    mobile: 20,
+                    tablet: 24,
+                    desktop: 28,
+                  ),
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 40),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context)),
+          ResponsiveHelper.getResponsiveLayout(
+            context: context,
+            mobile: Column(
               children: [
                 _buildTestimonialCard(
                   'Sarah Johnson',
@@ -935,14 +936,14 @@ class _LandingPageState extends State<LandingPage>
                   'CPF has been instrumental in helping us scale our environmental initiatives. Their transparent processes and dedicated support have made all the difference.',
                   Icons.eco,
                 ),
-                const SizedBox(width: 20),
+                const SizedBox(height: 20),
                 _buildTestimonialCard(
                   'Rajesh Kumar',
                   'Founder, Education for All',
                   'The impact measurement tools provided by CPF have helped us demonstrate our effectiveness to donors. Highly recommended!',
                   Icons.school,
                 ),
-                const SizedBox(width: 20),
+                const SizedBox(height: 20),
                 _buildTestimonialCard(
                   'Priya Sharma',
                   'Director, Women Empowerment NGO',
@@ -950,6 +951,60 @@ class _LandingPageState extends State<LandingPage>
                   Icons.person,
                 ),
               ],
+            ),
+            tablet: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildTestimonialCard(
+                    'Sarah Johnson',
+                    'CEO, Green Earth Foundation',
+                    'CPF has been instrumental in helping us scale our environmental initiatives. Their transparent processes and dedicated support have made all the difference.',
+                    Icons.eco,
+                  ),
+                  const SizedBox(width: 20),
+                  _buildTestimonialCard(
+                    'Rajesh Kumar',
+                    'Founder, Education for All',
+                    'The impact measurement tools provided by CPF have helped us demonstrate our effectiveness to donors. Highly recommended!',
+                    Icons.school,
+                  ),
+                  const SizedBox(width: 20),
+                  _buildTestimonialCard(
+                    'Priya Sharma',
+                    'Director, Women Empowerment NGO',
+                    'CPF\'s capacity building programs have transformed our organization. We\'ve seen a 300% increase in our impact metrics.',
+                    Icons.person,
+                  ),
+                ],
+              ),
+            ),
+            desktop: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildTestimonialCard(
+                    'Sarah Johnson',
+                    'CEO, Green Earth Foundation',
+                    'CPF has been instrumental in helping us scale our environmental initiatives. Their transparent processes and dedicated support have made all the difference.',
+                    Icons.eco,
+                  ),
+                  const SizedBox(width: 20),
+                  _buildTestimonialCard(
+                    'Rajesh Kumar',
+                    'Founder, Education for All',
+                    'The impact measurement tools provided by CPF have helped us demonstrate our effectiveness to donors. Highly recommended!',
+                    Icons.school,
+                  ),
+                  const SizedBox(width: 20),
+                  _buildTestimonialCard(
+                    'Priya Sharma',
+                    'Director, Women Empowerment NGO',
+                    'CPF\'s capacity building programs have transformed our organization. We\'ve seen a 300% increase in our impact metrics.',
+                    Icons.person,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -960,8 +1015,10 @@ class _LandingPageState extends State<LandingPage>
   Widget _buildTestimonialCard(
       String name, String title, String quote, IconData icon) {
     return Container(
-      width: 300,
-      padding: const EdgeInsets.all(24),
+      width: ResponsiveHelper.isMobile(context) ? double.infinity : 300,
+      padding: ResponsiveHelper.isMobile(context)
+          ? const EdgeInsets.all(20)
+          : const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -1028,7 +1085,7 @@ class _LandingPageState extends State<LandingPage>
 
   Widget _buildImpactSection() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+      padding: ResponsiveHelper.getResponsivePadding(context),
       child: Column(
         children: [
           Text(
@@ -1036,39 +1093,104 @@ class _LandingPageState extends State<LandingPage>
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppTheme.textPrimary,
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(
+                    context,
+                    mobile: 20,
+                    tablet: 24,
+                    desktop: 28,
+                  ),
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 40),
-          Row(
-            children: [
-              Expanded(
-                child: _buildImpactCard(
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context)),
+          ResponsiveHelper.getResponsiveLayout(
+            context: context,
+            mobile: Column(
+              children: [
+                _buildImpactCard(
                   'Education Initiative',
                   'Built 50 schools in rural areas, impacting 10,000+ children',
                   'images/Banner1.png',
                   Colors.blue,
                 ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: _buildImpactCard(
+                const SizedBox(height: 20),
+                _buildImpactCard(
                   'Healthcare Access',
                   'Provided medical care to 25,000+ underserved families',
                   'images/Banner2.png',
                   Colors.green,
                 ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: _buildImpactCard(
+                const SizedBox(height: 20),
+                _buildImpactCard(
                   'Environmental Conservation',
                   'Planted 100,000+ trees and restored 500 acres of forest',
                   'images/Banner3.png',
                   Colors.teal,
                 ),
-              ),
-            ],
+              ],
+            ),
+            tablet: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildImpactCard(
+                        'Education Initiative',
+                        'Built 50 schools in rural areas, impacting 10,000+ children',
+                        'images/Banner1.png',
+                        Colors.blue,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildImpactCard(
+                        'Healthcare Access',
+                        'Provided medical care to 25,000+ underserved families',
+                        'images/Banner2.png',
+                        Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                _buildImpactCard(
+                  'Environmental Conservation',
+                  'Planted 100,000+ trees and restored 500 acres of forest',
+                  'images/Banner3.png',
+                  Colors.teal,
+                ),
+              ],
+            ),
+            desktop: Row(
+              children: [
+                Expanded(
+                  child: _buildImpactCard(
+                    'Education Initiative',
+                    'Built 50 schools in rural areas, impacting 10,000+ children',
+                    'images/Banner1.png',
+                    Colors.blue,
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: _buildImpactCard(
+                    'Healthcare Access',
+                    'Provided medical care to 25,000+ underserved families',
+                    'images/Banner2.png',
+                    Colors.green,
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: _buildImpactCard(
+                    'Environmental Conservation',
+                    'Planted 100,000+ trees and restored 500 acres of forest',
+                    'images/Banner3.png',
+                    Colors.teal,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1078,7 +1200,7 @@ class _LandingPageState extends State<LandingPage>
   Widget _buildImpactCard(
       String title, String description, String imagePath, Color color) {
     return Container(
-      height: 300,
+      height: ResponsiveHelper.isMobile(context) ? 250 : 300,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
@@ -1128,7 +1250,9 @@ class _LandingPageState extends State<LandingPage>
               left: 0,
               right: 0,
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: ResponsiveHelper.isMobile(context)
+                    ? const EdgeInsets.all(16)
+                    : const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1137,6 +1261,12 @@ class _LandingPageState extends State<LandingPage>
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
+                            fontSize: ResponsiveHelper.getResponsiveFontSize(
+                              context,
+                              mobile: 16,
+                              tablet: 18,
+                              desktop: 20,
+                            ),
                           ),
                     ),
                     const SizedBox(height: 8),
@@ -1145,6 +1275,12 @@ class _LandingPageState extends State<LandingPage>
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: Colors.white.withOpacity(0.9),
                             height: 1.4,
+                            fontSize: ResponsiveHelper.getResponsiveFontSize(
+                              context,
+                              mobile: 12,
+                              tablet: 14,
+                              desktop: 16,
+                            ),
                           ),
                     ),
                   ],
@@ -1159,7 +1295,7 @@ class _LandingPageState extends State<LandingPage>
 
   Widget _buildPartnersSection() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+      padding: ResponsiveHelper.getResponsivePadding(context),
       decoration: BoxDecoration(
         color: Colors.grey[50],
       ),
@@ -1170,13 +1306,19 @@ class _LandingPageState extends State<LandingPage>
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppTheme.textPrimary,
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(
+                    context,
+                    mobile: 18,
+                    tablet: 22,
+                    desktop: 26,
+                  ),
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 40),
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context)),
           Wrap(
-            spacing: 40,
-            runSpacing: 20,
+            spacing: ResponsiveHelper.isMobile(context) ? 20 : 40,
+            runSpacing: ResponsiveHelper.isMobile(context) ? 16 : 20,
             alignment: WrapAlignment.center,
             children: [
               _buildPartnerLogo('Tata Group'),
@@ -1194,8 +1336,8 @@ class _LandingPageState extends State<LandingPage>
 
   Widget _buildPartnerLogo(String name) {
     return Container(
-      width: 120,
-      height: 80,
+      width: ResponsiveHelper.isMobile(context) ? 100 : 120,
+      height: ResponsiveHelper.isMobile(context) ? 60 : 80,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -1213,6 +1355,12 @@ class _LandingPageState extends State<LandingPage>
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: AppTheme.textSecondary,
+                fontSize: ResponsiveHelper.getResponsiveFontSize(
+                  context,
+                  mobile: 12,
+                  tablet: 14,
+                  desktop: 16,
+                ),
               ),
           textAlign: TextAlign.center,
         ),
@@ -1223,17 +1371,17 @@ class _LandingPageState extends State<LandingPage>
   Widget _buildFooter() {
     return Container(
       color: AppTheme.textPrimary,
-      padding: const EdgeInsets.all(40),
+      padding: ResponsiveHelper.getResponsivePadding(context),
       child: Column(
         children: [
           // Social Media Icons + Footer Links from wireframe
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
+              Icon(
                 Icons.link,
                 color: AppTheme.surfaceWhite,
-                size: 20,
+                size: ResponsiveHelper.isMobile(context) ? 16 : 20,
               ),
               const SizedBox(width: 8),
               Text(
@@ -1241,16 +1389,22 @@ class _LandingPageState extends State<LandingPage>
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: AppTheme.surfaceWhite,
                       fontWeight: FontWeight.w600,
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        mobile: 14,
+                        tablet: 16,
+                        desktop: 18,
+                      ),
                     ),
               ),
             ],
           ),
 
-          const SizedBox(height: 16),
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context)),
 
           Wrap(
-            spacing: 24,
-            runSpacing: 12,
+            spacing: ResponsiveHelper.isMobile(context) ? 16 : 24,
+            runSpacing: ResponsiveHelper.isMobile(context) ? 8 : 12,
             children: [
               _buildFooterLink(
                 'Website',

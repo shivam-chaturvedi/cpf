@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum UserRole { ngo, admin }
+enum UserRole { ngo, admin, donor }
 
 class AuthProvider with ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -46,7 +46,27 @@ class AuthProvider with ChangeNotifier {
     if (_user?.email == adminEmail) {
       _userRole = UserRole.admin;
     } else {
-      _userRole = UserRole.ngo;
+      // Check if user is a donor in either collection
+      final donorProfilesDoc =
+          await _firestore.collection('donor_profiles').doc(_user!.uid).get();
+
+      final donorsDoc =
+          await _firestore.collection('donors').doc(_user!.uid).get();
+
+      if (donorProfilesDoc.exists || donorsDoc.exists) {
+        _userRole = UserRole.donor;
+      } else {
+        // Check if user is an NGO
+        final ngoDoc =
+            await _firestore.collection('ngo_proposals').doc(_user!.uid).get();
+
+        if (ngoDoc.exists) {
+          _userRole = UserRole.ngo;
+        } else {
+          // Default to NGO if no specific role found
+          _userRole = UserRole.ngo;
+        }
+      }
     }
   }
 
