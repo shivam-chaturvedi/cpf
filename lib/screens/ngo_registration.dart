@@ -29,6 +29,7 @@ class _NGORegistrationPageState extends State<NGORegistrationPage> {
   // Initial registration fields
   final _ngoNameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
@@ -36,6 +37,7 @@ class _NGORegistrationPageState extends State<NGORegistrationPage> {
   void dispose() {
     _ngoNameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -49,43 +51,56 @@ class _NGORegistrationPageState extends State<NGORegistrationPage> {
     setState(() => _isLoading = true);
 
     try {
+      // Get form values
+      final ngoName = _ngoNameController.text.trim();
+      final email = _emailController.text.trim();
+      final phone = _phoneController.text.trim();
+      final password = _passwordController.text;
+
+      // Validate all fields are filled
+      if (ngoName.isEmpty ||
+          email.isEmpty ||
+          phone.isEmpty ||
+          password.isEmpty) {
+        AppHelpers.showErrorSnackBar(
+            context, 'Please fill in all required fields');
+        setState(() => _isLoading = false);
+        return;
+      }
       // Step 1: Create Firebase Auth user
       final userCredential =
           await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
+        email: email,
+        password: password,
       );
 
       final uid = userCredential.user!.uid;
 
       // Step 2: Update display name
-      await userCredential.user!
-          .updateDisplayName(_ngoNameController.text.trim());
+      await userCredential.user!.updateDisplayName(ngoName);
 
       // Step 3: Create initial Firestore document with basic info
       await FirebaseFirestore.instance
           .collection('ngo_proposals')
           .doc(uid)
           .set({
-        'ngoName': _ngoNameController.text.trim(),
-        'email': _emailController.text.trim(),
+        'ngoName': ngoName,
+        'email': email,
+        'phone': phone,
         'uid': uid,
-        'registrationStatus': 'incomplete',
+        'registrationStatus': 'pending_verification',
         'profileComplete': false,
-        'currentStep': 0,
+        'verificationStatus': 'pending',
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
-        'status': 'draft', // Will become 'pending' when fully submitted
+        'status': 'pending_verification',
       });
 
-      // Step 4: Navigate to complete profile page
+      // Step 4: Navigate to NGO dashboard
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => NGOCompleteProfilePage(uid: uid),
-          ),
-        );
+        Navigator.pushReplacementNamed(context, '/ngo-dashboard');
+        AppHelpers.showSuccessSnackBar(context,
+            'Registration submitted for verification. Admin will contact you soon.');
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
@@ -199,6 +214,16 @@ class _NGORegistrationPageState extends State<NGORegistrationPage> {
                     ),
                     const SizedBox(height: 20),
 
+                    CustomTextField(
+                      controller: _phoneController,
+                      label: 'Phone Number *',
+                      hint: 'Enter your contact number',
+                      icon: Icons.phone,
+                      keyboardType: TextInputType.phone,
+                      validator: Validators.validatePhone,
+                    ),
+                    const SizedBox(height: 20),
+
                     CustomPasswordField(
                       controller: _passwordController,
                       label: 'Password *',
@@ -217,10 +242,10 @@ class _NGORegistrationPageState extends State<NGORegistrationPage> {
                     const SizedBox(height: 32),
 
                     CustomButton(
-                      text: 'Create Account & Continue',
+                      text: 'Submit for Verification',
                       onPressed: _createAccountAndProceed,
                       isLoading: _isLoading,
-                      icon: Icons.arrow_forward,
+                      icon: Icons.check_circle,
                     ),
 
                     const SizedBox(height: 16),
@@ -244,7 +269,7 @@ class _NGORegistrationPageState extends State<NGORegistrationPage> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              'After creating your account, you\'ll complete your profile in multiple steps',
+                              'After submission, admin will contact you for verification. You can then complete your profile in the dashboard.',
                               style: Theme.of(context)
                                   .textTheme
                                   .bodySmall
@@ -476,13 +501,13 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
     'Puducherry',
   ];
 
-  // Financial years from 4 years back to current year
+  // Financial years from 5 years back to current year
   List<String> get _financialYears {
     final currentYear = DateTime.now().year;
     final List<String> years = [];
 
-    // Add 4 years back to current year
-    for (int i = 4; i >= 0; i--) {
+    // Add 5 years back to current year
+    for (int i = 5; i >= 0; i--) {
       final year = currentYear - i;
       years.add('${year}-${(year + 1).toString().substring(2)}');
     }
@@ -512,6 +537,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
   @override
   void initState() {
     super.initState();
+    _currentStep = 0; // Always start from step 1 (index 0)
     _loadExistingData();
   }
 
@@ -565,7 +591,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
         // Load basic info
         _ngoName = data['ngoName'];
         _email = data['email'];
-        _currentStep = data['currentStep'] ?? 0;
+        _currentStep = 0; // Always start from step 1 (index 0)
 
         // Load form data if exists
         if (data['dateOfRegistration'] != null) {
@@ -662,18 +688,41 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
         _correspondingAddressController.text =
             data['correspondingAddress'] ?? '';
 
-        // Jump to the saved step
-        if (_currentStep > 0) {
-          _pageController.jumpToPage(_currentStep);
-        }
+        // Load uploaded documents
+        await _loadUploadedDocuments();
       }
     } catch (e) {
       print('Error loading data: $e');
-      if (mounted) {
-        AppHelpers.showErrorSnackBar(context, 'Error loading saved data');
-      }
+      // Remove error toast - continue silently
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  // Load uploaded documents from Firebase
+  Future<void> _loadUploadedDocuments() async {
+    try {
+      final documents = await FirestoreFileService.getUploadedDocuments(
+        ngoId: widget.uid,
+      );
+
+      setState(() {
+        for (final doc in documents) {
+          final documentType = doc['documentType'] as String;
+          if (_documentMetadata.containsKey(documentType)) {
+            _documentMetadata[documentType] = {
+              'filename': doc['fileName'],
+              'download_url': doc['downloadUrl'],
+              'file_path': doc['filePath'],
+              'file_size': doc['fileSize'],
+              'original_name': doc['originalName'],
+              'uploaded_at': doc['uploadedAt'],
+            };
+          }
+        }
+      });
+    } catch (e) {
+      // Error loading documents - continue silently
     }
   }
 
@@ -691,9 +740,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
 
         // Validate file
         if (!FirestoreFileService.validateFile(file)) {
-          AppHelpers.showErrorSnackBar(
-              context, 'Invalid file. Must be PDF, JPG, or PNG under 50MB');
-          return;
+          return; // Invalid file - continue silently
         }
 
         // Check file size limit based on document type
@@ -701,10 +748,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
             ? AppConstants.maxAuditFileSize
             : AppConstants.maxFileSize;
         if (file.size > maxSize) {
-          int maxSizeMB = documentType.contains('audit') ? 25 : 5;
-          AppHelpers.showErrorSnackBar(
-              context, 'File size exceeds ${maxSizeMB}MB limit');
-          return;
+          return; // File too large - continue silently
         }
 
         // Show upload progress
@@ -745,19 +789,16 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
               };
             });
 
-            // Show success message with document name
-            final documentName = _getDocumentDisplayName(documentType);
-            AppHelpers.showSuccessSnackBar(
-                context, '✅ $documentName uploaded successfully!');
+            // File uploaded successfully - no toast message
           }
         } catch (e) {
           // Close progress dialog
           Navigator.pop(context);
-          AppHelpers.showErrorSnackBar(context, 'Upload failed: $e');
+          // Upload failed - continue silently
         }
       }
     } catch (e) {
-      AppHelpers.showErrorSnackBar(context, 'Error selecting file: $e');
+      // Error selecting file - continue silently
     }
   }
 
@@ -885,7 +926,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
       updateData['policyCompliance'] = _policyCompliance;
       updateData['policyReasons'] = _policyReasons;
 
-      // Save policy documents metadata
+      // Save policy documents metadata (without file bytes)
       Map<String, dynamic> policyDocumentsToSave = {};
       _policyDocuments.forEach((key, file) {
         if (file != null) {
@@ -894,7 +935,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
             'size': file.size,
             'extension': file.extension,
             'path': file.path,
-            'bytes': file.bytes,
+            // Removed 'bytes' to prevent Firestore size limit issues
           };
         }
       });
@@ -1086,7 +1127,7 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                     'size': file.size,
                     'extension': file.extension,
                     'path': file.path,
-                    'bytes': file.bytes,
+                    // Removed 'bytes' to prevent Firestore size limit issues
                   }
                 : null)),
 
@@ -1226,11 +1267,43 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
     );
   }
 
+  void _goBack() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Go Back?'),
+        content: const Text(
+            'Would you like to save your progress before going back to dashboard?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Go back to dashboard
+            },
+            child: const Text('Go back without saving'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context); // Close dialog
+              await _saveProgress();
+              Navigator.pop(context); // Go back to dashboard
+            },
+            child: const Text('Save and Go Back'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        _handleLogout();
+        _goBack();
         return false;
       },
       child: Scaffold(
@@ -1240,11 +1313,17 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
           backgroundColor: AppTheme.surfaceWhite,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _handleLogout,
-            tooltip: 'Logout',
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _goBack,
+            tooltip: 'Go Back',
           ),
           actions: [
+            TextButton.icon(
+              onPressed: _goBack,
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Go Back'),
+            ),
+            const SizedBox(width: 8),
             TextButton.icon(
               onPressed: _isSaving ? null : _saveProgress,
               icon: _isSaving
@@ -2485,6 +2564,14 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
+                            '✅ Uploaded',
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                          ),
+                          Text(
                             metadata['original_name'] ?? 'Unknown file',
                             style:
                                 Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -2649,20 +2736,15 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
 
   // Validate Financial & Legal Documents section
   bool _validateFinancialSection() {
-    print('🔍 Running Financial Section Validation...');
     List<String> errors = [];
 
     // Check PAN validation
     if (_panController.text.trim().isEmpty) {
       errors.add('PAN Card number is mandatory');
-      print('❌ PAN Card number is empty');
     } else {
       final panError = Validators.validatePAN(_panController.text);
       if (panError != null) {
         errors.add(panError);
-        print('❌ PAN validation failed: $panError');
-      } else {
-        print('✅ PAN validation passed');
       }
     }
 
@@ -2671,20 +2753,12 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
       final tanError = Validators.validateTAN(_tanController.text);
       if (tanError != null) {
         errors.add(tanError);
-        print('❌ TAN validation failed: $tanError');
-      } else {
-        print('✅ TAN validation passed');
       }
-    } else {
-      print('ℹ️ TAN is empty (optional)');
     }
 
     // Check mandatory PAN document upload
     if (_documentMetadata['pan_doc'] == null) {
       errors.add('PAN Card document upload is mandatory');
-      print('❌ PAN document not uploaded');
-    } else {
-      print('✅ PAN document uploaded');
     }
 
     // Check audit reports for at least one year
@@ -2692,62 +2766,116 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
     for (var year in _auditReportsByYear.keys) {
       if (_auditReportsByYear[year]!.isNotEmpty) {
         hasAuditReports = true;
-        print('✅ Audit reports found for $year');
         break;
       }
     }
     if (!hasAuditReports) {
       errors.add('At least one audit report is required for the last 3 years');
-      print('❌ No audit reports uploaded');
     }
 
     // Show errors if any
-    print('📊 Total validation errors: ${errors.length}');
     if (errors.isNotEmpty) {
-      print('🚨 Validation failed with errors: $errors');
       // Reset saving state if validation fails
       setState(() => _isSaving = false);
 
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Validation Errors'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Please fix the following issues:'),
-              const SizedBox(height: 12),
-              ...errors.map((error) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('• ',
-                            style: TextStyle(color: AppTheme.errorRed)),
-                        Expanded(child: Text(error)),
-                      ],
-                    ),
-                  )),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
+      _showValidationErrorDialog(errors);
       return false;
     }
 
-    print('✅ All validations passed!');
     return true;
   }
 
+  // Show validation errors in a proper dialog
+  void _showValidationErrorDialog(List<String> errors) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.error_outline, color: AppTheme.errorRed),
+            const SizedBox(width: 8),
+            const Text('Validation Errors'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Please fix the following issues before proceeding:',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              ...errors.asMap().entries.map((entry) {
+                final index = entry.key;
+                final error = entry.value;
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.errorRed.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppTheme.errorRed.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: AppTheme.errorRed,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${index + 1}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          error,
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppTheme.textPrimary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: AppTheme.primaryRed,
+            ),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   bool _validatePoliciesSection() {
-    print('🔍 Running Policies & Compliance Section Validation...');
     List<String> errors = [];
 
     // Check each policy
@@ -2762,62 +2890,22 @@ class _NGOCompleteProfilePageState extends State<NGOCompleteProfilePage> {
         if (document == null) {
           errors.add(
               '$policyName document upload is mandatory when policy exists');
-          print('❌ $policyName document not uploaded');
-        } else {
-          print('✅ $policyName document uploaded');
         }
       } else {
         // If they don't have the policy, they must provide a reason
         if (reason.trim().isEmpty) {
           errors.add('Reason is mandatory for not having $policyName');
-          print('❌ $policyName reason not provided');
-        } else {
-          print('✅ $policyName reason provided');
         }
       }
     }
 
     // Show errors if any
-    print('📊 Total validation errors: ${errors.length}');
     if (errors.isNotEmpty) {
-      print('🚨 Validation failed with errors: $errors');
       setState(() => _isSaving = false);
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Validation Errors'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Please fix the following issues:'),
-              const SizedBox(height: 12),
-              ...errors.map((error) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('• ',
-                            style: TextStyle(color: AppTheme.errorRed)),
-                        Expanded(child: Text(error)),
-                      ],
-                    ),
-                  )),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
+      _showValidationErrorDialog(errors);
       return false;
     }
 
-    print('✅ All policy validations passed!');
     return true;
   }
 

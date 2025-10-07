@@ -16,6 +16,9 @@ dependencies:
   cloud_firestore: ^6.0.2
   firebase_storage: ^13.0.2
   
+  # Supabase
+  supabase_flutter: ^2.5.6
+  
   # State Management
   provider: ^6.1.1
   

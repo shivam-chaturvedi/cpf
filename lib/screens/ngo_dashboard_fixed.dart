@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
+import 'dart:html' as html;
 
 import 'package:cpf_portal/util/helpers.dart';
 import 'package:cpf_portal/util/theme.dart';
@@ -30,7 +31,7 @@ class NGODashboardWrapper extends StatelessWidget {
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance
           .collection('ngo_proposals')
-          .doc(authProvider.user?.uid)
+          .doc(authProvider.currentUser?.uid)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -99,7 +100,7 @@ class _NGODashboardState extends State<NGODashboard>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -405,7 +406,6 @@ class _NGODashboardState extends State<NGODashboard>
             Tab(icon: Icon(Icons.person), text: 'Profile'),
             Tab(icon: Icon(Icons.upload_file), text: 'Submit Data'),
             Tab(icon: Icon(Icons.description), text: 'Proposals'),
-            Tab(icon: Icon(Icons.workspace_premium), text: 'Certificates'),
             Tab(icon: Icon(Icons.history), text: 'History'),
           ],
         ),
@@ -417,7 +417,6 @@ class _NGODashboardState extends State<NGODashboard>
           _buildProfileTab(),
           _buildSubmitDataTab(),
           _buildProposalsTab(),
-          _buildCertificatesTab(),
           _buildHistoryTab(),
         ],
       ),
@@ -437,7 +436,6 @@ class _NGODashboardState extends State<NGODashboard>
 
         if (!snapshot.hasData || !snapshot.data!.exists) {
           return const EmptyStateWidget(
-            icon: Icons.person_off,
             title: 'Profile Not Found',
             message: 'Please complete your NGO registration first.',
           );
@@ -496,8 +494,7 @@ class _NGODashboardState extends State<NGODashboard>
   }
 
   Widget _buildVerificationStatusBanner(Map<String, dynamic> ngoData) {
-    final verificationStatus =
-        ngoData['status'] ?? ngoData['verificationStatus'] ?? 'pending';
+    final verificationStatus = ngoData['verificationStatus'] ?? 'pending';
     final isProfileComplete = ngoData['profileComplete'] ?? false;
 
     Color bannerColor;
@@ -506,7 +503,6 @@ class _NGODashboardState extends State<NGODashboard>
     String bannerMessage;
 
     switch (verificationStatus) {
-      case 'approved':
       case 'verified':
         bannerColor = Colors.green;
         bannerIcon = Icons.check_circle;
@@ -519,12 +515,6 @@ class _NGODashboardState extends State<NGODashboard>
         bannerTitle = 'Rejected';
         bannerMessage =
             'Your NGO verification was rejected. Please contact support.';
-        break;
-      case 'under_review':
-        bannerColor = Colors.blue;
-        bannerIcon = Icons.visibility;
-        bannerTitle = 'Under Review';
-        bannerMessage = 'Your NGO is currently under review by our team.';
         break;
       default:
         bannerColor = Colors.orange;
@@ -576,7 +566,6 @@ class _NGODashboardState extends State<NGODashboard>
                   ),
                 ),
               ),
-              icon: Icons.person_add,
               isOutlined: true,
             ),
         ],
@@ -723,7 +712,6 @@ class _NGODashboardState extends State<NGODashboard>
 
         if (!snapshot.hasData || !snapshot.data!.exists) {
           return const EmptyStateWidget(
-            icon: Icons.person_off,
             title: 'Profile Not Found',
             message: 'Please complete your NGO registration first.',
           );
@@ -1276,269 +1264,5 @@ class _NGODashboardState extends State<NGODashboard>
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
-
-  Widget _buildCertificatesTab() {
-    return StreamBuilder<DocumentSnapshot>(
-      stream: _firestore
-          .collection('ngo_proposals')
-          .doc(_auth.currentUser?.uid)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const LoadingWidget();
-        }
-
-        if (!snapshot.hasData || !snapshot.data!.exists) {
-          return const EmptyStateWidget(
-            icon: Icons.workspace_premium,
-            title: 'No Certificates Available',
-            message: 'Please complete your NGO registration first.',
-          );
-        }
-
-        final ngoData = snapshot.data!.data() as Map<String, dynamic>;
-        final status = ngoData['status'] ?? 'pending';
-
-        return SingleChildScrollView(
-          padding: AppHelpers.getResponsivePadding(context),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'NGO Certificates',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Download your official CPF certificates and documents',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
-              ),
-              const SizedBox(height: 24),
-
-              // Status-based certificate display
-              if (status == 'approved' || status == 'verified') ...[
-                // Approved NGO certificates
-                _buildCertificateCard(
-                  'NGO Registration Certificate',
-                  'Official registration certificate from CPF',
-                  'assets/docs/1 CERT_Compliance_NGO_6Feb25.docx',
-                  Icons.workspace_premium,
-                  Colors.green,
-                ),
-                const SizedBox(height: 16),
-                _buildCertificateCard(
-                  'Compliance Certificate',
-                  'Certificate of compliance with CPF standards',
-                  'assets/docs/CPF Letterhead - Copy (2).docx',
-                  Icons.verified,
-                  Colors.blue,
-                ),
-                const SizedBox(height: 16),
-                _buildCertificateCard(
-                  'Impact Assessment Report',
-                  'Detailed impact assessment and evaluation report',
-                  'assets/docs/impact_report.pdf',
-                  Icons.assessment,
-                  Colors.orange,
-                ),
-              ] else if (status == 'under_review') ...[
-                // Under review message
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
-                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(Icons.visibility, size: 48, color: Colors.blue),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Certificates Under Review',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
-                            ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Your NGO is currently under review. Certificates will be available once the review process is complete.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.textSecondary,
-                            ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              ] else ...[
-                // Pending verification message
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
-                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(Icons.pending, size: 48, color: Colors.orange),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Certificates Pending',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange,
-                            ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Your NGO verification is pending. Certificates will be available once your NGO is approved.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.textSecondary,
-                            ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 32),
-
-              // Video section
-              if (status == 'approved' || status == 'verified') ...[
-                Text(
-                  'Watch Our Impact',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  height: 200,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            AppTheme.primaryRed,
-                            AppTheme.primaryRed.withOpacity(0.8),
-                          ],
-                        ),
-                      ),
-                      child: const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.play_circle_filled,
-                              size: 60,
-                              color: Colors.white,
-                            ),
-                            SizedBox(height: 12),
-                            Text(
-                              'Watch Our Impact Video',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Click to play',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildCertificateCard(String title, String description,
-      String filePath, IconData icon, Color color) {
-    return Card(
-      elevation: 4,
-      child: InkWell(
-        onTap: () => _downloadCertificate(filePath, title),
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppTheme.textSecondary,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.download,
-                color: AppTheme.primaryRed,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _downloadCertificate(String filePath, String title) {
-    // In a real app, this would download the certificate
-    AppHelpers.showInfoSnackBar(context, 'Downloading $title...');
-  }
 }
+

@@ -1,0 +1,300 @@
+import 'dart:typed_data';
+import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
+import 'package:http/http.dart' as http;
+
+class FirestoreFileService {
+  // Updated with actual Plesk server details for npo-registration.cpfindia.org
+  static const String pleskApiUrl = 'https://npo-registration.cpfindia.org/api';
+  static const String pleskApiKey =
+      'CPF_API_2024_k7m9p2x8q4w6t3y1r5u8i9o0a2s4d6f8';
+
+  /// Upload file to Plesk server (replaces base64 Firestore storage)
+  static Future<Map<String, dynamic>?> uploadFile({
+    required String ngoId,
+    required String documentType,
+    required PlatformFile file,
+  }) async {
+    try {
+      if (!validateFile(file)) {
+        throw Exception('Invalid file. Must be PDF, JPG, or PNG under 50MB');
+      }
+
+      if (file.bytes == null) {
+        throw Exception('File bytes not available');
+      }
+
+      // Create multipart request for Plesk API
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$pleskApiUrl/documents/upload'),
+      );
+
+      // Add headers with CORS support
+      request.headers.addAll({
+        'Authorization': 'Bearer $pleskApiKey',
+        'Accept': 'application/json',
+        'Content-Type': 'multipart/form-data',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      });
+
+      // Add fields
+      request.fields['ngo_id'] = ngoId;
+      request.fields['document_type'] = documentType;
+      request.fields['original_name'] = file.name;
+      request.fields['file_size'] = file.size.toString();
+
+      // Add file
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'document',
+          file.bytes!,
+          filename: file.name,
+        ),
+      );
+
+      // Send request
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = json.decode(response.body);
+
+        if (responseData['success'] == true) {
+          // Return metadata in same format as before for compatibility
+          return {
+            'filename': responseData['data']['filename'],
+            'original_name': file.name,
+            'file_size': file.size,
+            'document_type': documentType,
+            'uploaded_at': DateTime.now().toIso8601String(),
+            'download_url': responseData['data']['download_url'],
+            'file_path': responseData['data']['file_path'],
+          };
+        } else {
+          throw Exception(responseData['message'] ?? 'Upload failed');
+        }
+      } else {
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ??
+            'Upload failed with status ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error uploading file to Plesk: $e');
+      return null;
+    }
+  }
+
+  /// Download file from Plesk server (replaces base64 Firestore download)
+  static Future<Uint8List> downloadFile({
+    required String ngoId,
+    required String filename,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$pleskApiUrl/documents/download/$filename'),
+        headers: {
+          'Authorization': 'Bearer $pleskApiKey',
+          'NGO-ID': ngoId,
+          'Accept': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return response.bodyBytes;
+      } else {
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ?? 'Download failed');
+      }
+    } catch (e) {
+      print('Error downloading file from Plesk: $e');
+      throw Exception('Failed to download file: $e');
+    }
+  }
+
+  /// List files from Plesk database (replaces Firestore query)
+  static Future<List<Map<String, dynamic>>> listFiles({
+    required String ngoId,
+    String? documentType,
+  }) async {
+    try {
+      var url = '$pleskApiUrl/documents/list/$ngoId';
+      if (documentType != null) {
+        url += '?document_type=$documentType';
+      }
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $pleskApiKey',
+          'Accept': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+
+        if (responseData['success'] == true) {
+          return List<Map<String, dynamic>>.from(responseData['data']);
+        } else {
+          throw Exception(responseData['message'] ?? 'Failed to list files');
+        }
+      } else {
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to list files');
+      }
+    } catch (e) {
+      print('Error listing files: $e');
+      return [];
+    }
+  }
+
+  /// Submit yearly documents (enhanced for bulk upload)
+  static Future<Map<String, dynamic>?> submitYearlyDocuments({
+    required String ngoId,
+    required String financialYear,
+    required Map<String, PlatformFile> documents,
+  }) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$pleskApiUrl/yearly-documents/submit'),
+      );
+
+      request.headers.addAll({
+        'Authorization': 'Bearer $pleskApiKey',
+        'Accept': 'application/json',
+        'Content-Type': 'multipart/form-data',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      });
+
+      request.fields['ngo_id'] = ngoId;
+      request.fields['financial_year'] = financialYear;
+
+      // Add multiple files
+      for (var entry in documents.entries) {
+        if (entry.value.bytes != null) {
+          request.files.add(
+            http.MultipartFile.fromBytes(
+              'documents[${entry.key}]',
+              entry.value.bytes!,
+              filename: entry.value.name,
+            ),
+          );
+        }
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = json.decode(response.body);
+        return responseData['success'] == true ? responseData['data'] : null;
+      } else {
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ?? 'Submission failed');
+      }
+    } catch (e) {
+      print('Yearly documents submission error: $e');
+      return null;
+    }
+  }
+
+  /// Submit proposal document
+  static Future<Map<String, dynamic>?> submitProposal({
+    required String ngoId,
+    required String title,
+    required String description,
+    required double requestedAmount,
+    required PlatformFile proposalDocument,
+  }) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$pleskApiUrl/proposals/submit'),
+      );
+
+      request.headers.addAll({
+        'Authorization': 'Bearer $pleskApiKey',
+        'Accept': 'application/json',
+        'Content-Type': 'multipart/form-data',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      });
+
+      request.fields['ngo_id'] = ngoId;
+      request.fields['title'] = title;
+      request.fields['description'] = description;
+      request.fields['requested_amount'] = requestedAmount.toString();
+
+      if (proposalDocument.bytes != null) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'proposal_document',
+            proposalDocument.bytes!,
+            filename: proposalDocument.name,
+          ),
+        );
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = json.decode(response.body);
+        return responseData['success'] == true ? responseData['data'] : null;
+      } else {
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ?? 'Proposal submission failed');
+      }
+    } catch (e) {
+      print('Proposal submission error: $e');
+      return null;
+    }
+  }
+
+  // Keep existing validation methods unchanged
+  static bool validateFile(PlatformFile file) {
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    final allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
+
+    if (file.size > maxSize) return false;
+    if (file.extension == null) return false;
+    if (!allowedExtensions.contains(file.extension!.toLowerCase()))
+      return false;
+
+    return true;
+  }
+
+  static String formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  // Helper method for migration
+  static String _getMimeType(String extension) {
+    switch (extension.toLowerCase()) {
+      case 'pdf':
+        return 'application/pdf';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      default:
+        return 'application/octet-stream';
+    }
+  }
+}

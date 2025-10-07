@@ -12,6 +12,7 @@ import '../widgets/loading_widget.dart';
 import '../widgets/custom_navbar.dart';
 import '../services/certificate_service.dart';
 import '../services/donor_ngo_service.dart';
+import '../providers/firestore_file_service.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -48,7 +49,7 @@ class _AdminDashboardState extends State<AdminDashboard>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 8, vsync: this);
+    _tabController = TabController(length: 9, vsync: this);
     _loadData();
   }
 
@@ -262,6 +263,18 @@ class _AdminDashboardState extends State<AdminDashboard>
                           ),
                         ),
                       ),
+                      Tab(
+                        text: 'Documents',
+                        icon: Icon(
+                          Icons.folder,
+                          size: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            mobile: 16,
+                            tablet: 18,
+                            desktop: 20,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -277,6 +290,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                       _buildAnalyticsTab(),
                       _buildDonorNGOAssignmentTab(),
                       _buildCertificatesTab(),
+                      _buildDocumentsTab(),
                     ],
                   ),
                 ),
@@ -3358,6 +3372,333 @@ class _AdminDashboardState extends State<AdminDashboard>
     await authProvider.logout();
     if (context.mounted) {
       Navigator.pushReplacementNamed(context, '/');
+    }
+  }
+
+  Widget _buildDocumentsTab() {
+    return SingleChildScrollView(
+      padding: ResponsiveHelper.getResponsivePadding(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Document Tracking',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryRed,
+                ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Track all uploaded documents by NGOs with Supabase storage integration',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
+          ),
+          const SizedBox(height: 24),
+          _buildDocumentStats(),
+          const SizedBox(height: 24),
+          _buildDocumentList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDocumentStats() {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _getDocumentStats(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const LoadingWidget();
+        }
+
+        if (snapshot.hasError) {
+          return Text('Error: ${snapshot.error}');
+        }
+
+        final stats = snapshot.data ?? {};
+        final totalDocuments = stats['totalDocuments'] ?? 0;
+        final totalSize = stats['totalSize'] ?? 0;
+        final ngosWithDocuments = stats['ngosWithDocuments'] ?? 0;
+
+        return ResponsiveHelper.getResponsiveLayout(
+          context: context,
+          mobile: Column(
+            children: [
+              _buildStatCard('Total Documents', totalDocuments.toString(),
+                  Icons.description, Colors.blue),
+              const SizedBox(height: 12),
+              _buildStatCard(
+                  'Total Size',
+                  FirestoreFileService.formatFileSize(totalSize),
+                  Icons.storage,
+                  Colors.green),
+              const SizedBox(height: 12),
+              _buildStatCard('NGOs with Documents',
+                  ngosWithDocuments.toString(), Icons.business, Colors.orange),
+            ],
+          ),
+          tablet: Row(
+            children: [
+              Expanded(
+                  child: _buildStatCard(
+                      'Total Documents',
+                      totalDocuments.toString(),
+                      Icons.description,
+                      Colors.blue)),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: _buildStatCard(
+                      'Total Size',
+                      FirestoreFileService.formatFileSize(totalSize),
+                      Icons.storage,
+                      Colors.green)),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: _buildStatCard(
+                      'NGOs with Documents',
+                      ngosWithDocuments.toString(),
+                      Icons.business,
+                      Colors.orange)),
+            ],
+          ),
+          desktop: Row(
+            children: [
+              Expanded(
+                  child: _buildStatCard(
+                      'Total Documents',
+                      totalDocuments.toString(),
+                      Icons.description,
+                      Colors.blue)),
+              const SizedBox(width: 16),
+              Expanded(
+                  child: _buildStatCard(
+                      'Total Size',
+                      FirestoreFileService.formatFileSize(totalSize),
+                      Icons.storage,
+                      Colors.green)),
+              const SizedBox(width: 16),
+              Expanded(
+                  child: _buildStatCard(
+                      'NGOs with Documents',
+                      ngosWithDocuments.toString(),
+                      Icons.business,
+                      Colors.orange)),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDocumentList() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _getAllUploadedDocuments(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const LoadingWidget();
+        }
+
+        if (snapshot.hasError) {
+          return Text('Error: ${snapshot.error}');
+        }
+
+        final documents = snapshot.data ?? [];
+
+        if (documents.isEmpty) {
+          return const Center(
+            child: Text('No documents uploaded yet'),
+          );
+        }
+
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: documents.length,
+          itemBuilder: (context, index) {
+            final doc = documents[index];
+            return _buildDocumentCard(doc);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildDocumentCard(Map<String, dynamic> doc) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: AppTheme.primaryRed.withOpacity(0.1),
+          child: Icon(
+            _getDocumentIcon(doc['documentType']),
+            color: AppTheme.primaryRed,
+          ),
+        ),
+        title: Text(
+          doc['originalName'] ?? 'Unknown file',
+          style: const TextStyle(fontWeight: FontWeight.w500),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('NGO: ${doc['ngoId']}'),
+            Text('Type: ${doc['documentType']}'),
+            Text(
+                'Size: ${FirestoreFileService.formatFileSize(doc['fileSize'] ?? 0)}'),
+            Text('Uploaded: ${_formatDate(doc['uploadedAt'])}'),
+          ],
+        ),
+        trailing: PopupMenuButton<String>(
+          onSelected: (value) {
+            switch (value) {
+              case 'download':
+                _downloadDocument(doc);
+                break;
+              case 'view':
+                _viewDocument(doc);
+                break;
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'download',
+              child: Row(
+                children: [
+                  Icon(Icons.download),
+                  SizedBox(width: 8),
+                  Text('Download'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'view',
+              child: Row(
+                children: [
+                  Icon(Icons.visibility),
+                  SizedBox(width: 8),
+                  Text('View'),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _getDocumentIcon(String documentType) {
+    switch (documentType.toLowerCase()) {
+      case 'pan_doc':
+        return Icons.credit_card;
+      case 'itr':
+        return Icons.receipt;
+      case 'audit':
+        return Icons.assessment;
+      case 'proposal':
+        return Icons.description;
+      default:
+        return Icons.insert_drive_file;
+    }
+  }
+
+  void _downloadDocument(Map<String, dynamic> doc) {
+    // Implement document download
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Downloading ${doc['originalName']}...')),
+    );
+  }
+
+  void _viewDocument(Map<String, dynamic> doc) {
+    // Implement document view
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Opening ${doc['originalName']}...')),
+    );
+  }
+
+  Future<Map<String, dynamic>> _getDocumentStats() async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final snapshot = await firestore.collection('ngo_proposals').get();
+
+      int totalDocuments = 0;
+      int totalSize = 0;
+      int ngosWithDocuments = 0;
+
+      for (final doc in snapshot.docs) {
+        final ngoId = doc.id;
+        final documentsSnapshot = await firestore
+            .collection('ngo_proposals')
+            .doc(ngoId)
+            .collection('uploaded_documents')
+            .get();
+
+        if (documentsSnapshot.docs.isNotEmpty) {
+          ngosWithDocuments++;
+          totalDocuments += documentsSnapshot.docs.length;
+
+          for (final docData in documentsSnapshot.docs) {
+            totalSize += (docData.data()['fileSize'] ?? 0) as int;
+          }
+        }
+      }
+
+      return {
+        'totalDocuments': totalDocuments,
+        'totalSize': totalSize,
+        'ngosWithDocuments': ngosWithDocuments,
+      };
+    } catch (e) {
+      print('Error getting document stats: $e');
+      return {};
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _getAllUploadedDocuments() async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final snapshot = await firestore.collection('ngo_proposals').get();
+
+      List<Map<String, dynamic>> allDocuments = [];
+
+      for (final doc in snapshot.docs) {
+        final ngoId = doc.id;
+        final documentsSnapshot = await firestore
+            .collection('ngo_proposals')
+            .doc(ngoId)
+            .collection('uploaded_documents')
+            .orderBy('uploadedAt', descending: true)
+            .get();
+
+        for (final docData in documentsSnapshot.docs) {
+          final data = docData.data();
+          data['id'] = docData.id;
+          data['ngoId'] = ngoId;
+          allDocuments.add(data);
+        }
+      }
+
+      // Sort by upload date
+      allDocuments.sort((a, b) {
+        final dateA = a['uploadedAt'];
+        final dateB = b['uploadedAt'];
+        if (dateA == null || dateB == null) return 0;
+
+        try {
+          final parsedA =
+              dateA is DateTime ? dateA : DateTime.parse(dateA.toString());
+          final parsedB =
+              dateB is DateTime ? dateB : DateTime.parse(dateB.toString());
+          return parsedB.compareTo(parsedA);
+        } catch (e) {
+          return 0;
+        }
+      });
+
+      return allDocuments;
+    } catch (e) {
+      print('Error getting all uploaded documents: $e');
+      return [];
     }
   }
 }

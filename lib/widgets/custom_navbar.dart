@@ -22,18 +22,19 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      toolbarHeight:
-          ResponsiveHelper.isMobile(context) ? 80 : 100, // Increased height
+      toolbarHeight: ResponsiveHelper.isMobile(context)
+          ? 100
+          : 120, // Increased height for larger logo
       title: Row(
         children: [
           // CPF Logo
           Container(
             width: ResponsiveHelper.isMobile(context)
-                ? 140
-                : 180, // Increased width
+                ? 180
+                : 220, // Further increased width
             height: ResponsiveHelper.isMobile(context)
-                ? 50
-                : 70, // Increased height
+                ? 70
+                : 90, // Further increased height
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
             ),
@@ -95,7 +96,7 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
       ),
       backgroundColor: AppTheme.surfaceWhite,
       elevation: 0,
-      scrolledUnderElevation: 1,
+      scrolledUnderElevation: 0,
       automaticallyImplyLeading: showBackButton,
       actions: actions ?? _buildDefaultActions(context),
       // bottom: isLandingPage ?r _buildLandingPageBottom(context) : null,
@@ -592,8 +593,8 @@ class DashboardNavbar extends StatelessWidget implements PreferredSizeWidget {
       title: Row(
         children: [
           Container(
-            width: ResponsiveHelper.isMobile(context) ? 120 : 150,
-            height: ResponsiveHelper.isMobile(context) ? 40 : 50,
+            width: ResponsiveHelper.isMobile(context) ? 160 : 200,
+            height: ResponsiveHelper.isMobile(context) ? 60 : 80,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
             ),
@@ -665,7 +666,7 @@ class DashboardNavbar extends StatelessWidget implements PreferredSizeWidget {
       ),
       backgroundColor: AppTheme.surfaceWhite,
       elevation: 0,
-      scrolledUnderElevation: 1,
+      scrolledUnderElevation: 0,
       automaticallyImplyLeading: false,
       actions: [
         if (onRefresh != null)

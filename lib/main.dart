@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart'; // Import the Firebase options
+import 'supabase_config.dart'; // Import the Supabase configuration
 import 'providers/auth_provider.dart';
 import 'providers/ngo_provider.dart';
 import 'widgets/auth_wrapper.dart';
@@ -26,6 +27,9 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Initialize Supabase
+  await SupabaseConfig.initialize();
 
   runApp(const CPFPortalApp());
 }

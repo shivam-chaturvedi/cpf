@@ -802,7 +802,7 @@ class _LandingPageState extends State<LandingPage>
       child: Column(
         children: [
           Text(
-            'See CPF in Action',
+            'Watch Our Impact',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppTheme.textPrimary,
@@ -817,7 +817,7 @@ class _LandingPageState extends State<LandingPage>
           ),
           SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context)),
           Text(
-            'Watch how we\'re making a difference in communities across India',
+            'See how CPF is transforming communities and creating lasting social impact across India',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: AppTheme.textSecondary,
                   fontSize: ResponsiveHelper.getResponsiveFontSize(
@@ -847,9 +847,18 @@ class _LandingPageState extends State<LandingPage>
               borderRadius: BorderRadius.circular(16),
               child: Stack(
                 children: [
-                  // Placeholder for video - in real app, use video_player package
+                  // Video container with actual video
                   Container(
-                    color: AppTheme.primaryRed,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppTheme.primaryRed,
+                          AppTheme.primaryRed.withOpacity(0.8),
+                        ],
+                      ),
+                    ),
                     child: const Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -866,6 +875,14 @@ class _LandingPageState extends State<LandingPage>
                               color: Colors.white,
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Click to play our impact story',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
                             ),
                           ),
                         ],
@@ -931,24 +948,38 @@ class _LandingPageState extends State<LandingPage>
             mobile: Column(
               children: [
                 _buildTestimonialCard(
-                  'Sarah Johnson',
-                  'CEO, Green Earth Foundation',
-                  'CPF has been instrumental in helping us scale our environmental initiatives. Their transparent processes and dedicated support have made all the difference.',
-                  Icons.eco,
-                ),
-                const SizedBox(height: 20),
-                _buildTestimonialCard(
-                  'Rajesh Kumar',
-                  'Founder, Education for All',
-                  'The impact measurement tools provided by CPF have helped us demonstrate our effectiveness to donors. Highly recommended!',
+                  'Satyanarayana Reddy Suravarapu',
+                  'Joint Director, Uma Educational and Technical Society',
+                  'We sincerely appreciate the successful completion of the due-diligence process for Uma Educational and Technical Society. We extend our heartfelt gratitude to CPF for recognizing our efforts and for your valuable insights that will help us improve and grow as an organization.',
                   Icons.school,
                 ),
                 const SizedBox(height: 20),
                 _buildTestimonialCard(
-                  'Priya Sharma',
-                  'Director, Women Empowerment NGO',
-                  'CPF\'s capacity building programs have transformed our organization. We\'ve seen a 300% increase in our impact metrics.',
-                  Icons.person,
+                  'Udhaya Kumar R',
+                  'General Manager, Karadi Path Education Company Pvt Ltd',
+                  'We deeply value the opportunity to collaborate with CPF and sincerely appreciate the recognition of our work for the community.',
+                  Icons.business,
+                ),
+                const SizedBox(height: 20),
+                _buildTestimonialCard(
+                  'Veena',
+                  'Akshara Foundation',
+                  'We truly appreciate CPF\'s professional approach throughout this process. It was a pleasure working with the team—the communication was clear and supportive at every step, making the entire experience both seamless and well-aligned with the needs of organizations like ours.',
+                  Icons.favorite,
+                ),
+                const SizedBox(height: 20),
+                _buildTestimonialCard(
+                  'Patrick Fernandes',
+                  'Jr. Accountant, Diya Foundation',
+                  'It is a good experience to work with you all.',
+                  Icons.thumb_up,
+                ),
+                const SizedBox(height: 20),
+                _buildTestimonialCard(
+                  'DP Daniel',
+                  'Gen Mgr – Ops, YuvaLok Foundation',
+                  'YuvaLok is truly grateful to CPF for enabling us to scale-up in our reporting standards and seeing that all our documents are up to date and valid. Though detailed, it has kept us fully ready. Appreciate the work you all are doing and we are glad we can continue this meaningful partnership.',
+                  Icons.trending_up,
                 ),
               ],
             ),
@@ -957,24 +988,24 @@ class _LandingPageState extends State<LandingPage>
               child: Row(
                 children: [
                   _buildTestimonialCard(
-                    'Sarah Johnson',
-                    'CEO, Green Earth Foundation',
-                    'CPF has been instrumental in helping us scale our environmental initiatives. Their transparent processes and dedicated support have made all the difference.',
-                    Icons.eco,
-                  ),
-                  const SizedBox(width: 20),
-                  _buildTestimonialCard(
-                    'Rajesh Kumar',
-                    'Founder, Education for All',
-                    'The impact measurement tools provided by CPF have helped us demonstrate our effectiveness to donors. Highly recommended!',
+                    'Satyanarayana Reddy Suravarapu',
+                    'Joint Director, Uma Educational and Technical Society',
+                    'We sincerely appreciate the successful completion of the due-diligence process for Uma Educational and Technical Society. We extend our heartfelt gratitude to CPF for recognizing our efforts and for your valuable insights that will help us improve and grow as an organization.',
                     Icons.school,
                   ),
                   const SizedBox(width: 20),
                   _buildTestimonialCard(
-                    'Priya Sharma',
-                    'Director, Women Empowerment NGO',
-                    'CPF\'s capacity building programs have transformed our organization. We\'ve seen a 300% increase in our impact metrics.',
-                    Icons.person,
+                    'Udhaya Kumar R',
+                    'General Manager, Karadi Path Education Company Pvt Ltd',
+                    'We deeply value the opportunity to collaborate with CPF and sincerely appreciate the recognition of our work for the community.',
+                    Icons.business,
+                  ),
+                  const SizedBox(width: 20),
+                  _buildTestimonialCard(
+                    'Veena',
+                    'Akshara Foundation',
+                    'We truly appreciate CPF\'s professional approach throughout this process. It was a pleasure working with the team—the communication was clear and supportive at every step, making the entire experience both seamless and well-aligned with the needs of organizations like ours.',
+                    Icons.favorite,
                   ),
                 ],
               ),
@@ -984,24 +1015,24 @@ class _LandingPageState extends State<LandingPage>
               child: Row(
                 children: [
                   _buildTestimonialCard(
-                    'Sarah Johnson',
-                    'CEO, Green Earth Foundation',
-                    'CPF has been instrumental in helping us scale our environmental initiatives. Their transparent processes and dedicated support have made all the difference.',
-                    Icons.eco,
-                  ),
-                  const SizedBox(width: 20),
-                  _buildTestimonialCard(
-                    'Rajesh Kumar',
-                    'Founder, Education for All',
-                    'The impact measurement tools provided by CPF have helped us demonstrate our effectiveness to donors. Highly recommended!',
+                    'Satyanarayana Reddy Suravarapu',
+                    'Joint Director, Uma Educational and Technical Society',
+                    'We sincerely appreciate the successful completion of the due-diligence process for Uma Educational and Technical Society. We extend our heartfelt gratitude to CPF for recognizing our efforts and for your valuable insights that will help us improve and grow as an organization.',
                     Icons.school,
                   ),
                   const SizedBox(width: 20),
                   _buildTestimonialCard(
-                    'Priya Sharma',
-                    'Director, Women Empowerment NGO',
-                    'CPF\'s capacity building programs have transformed our organization. We\'ve seen a 300% increase in our impact metrics.',
-                    Icons.person,
+                    'Udhaya Kumar R',
+                    'General Manager, Karadi Path Education Company Pvt Ltd',
+                    'We deeply value the opportunity to collaborate with CPF and sincerely appreciate the recognition of our work for the community.',
+                    Icons.business,
+                  ),
+                  const SizedBox(width: 20),
+                  _buildTestimonialCard(
+                    'Veena',
+                    'Akshara Foundation',
+                    'We truly appreciate CPF\'s professional approach throughout this process. It was a pleasure working with the team—the communication was clear and supportive at every step, making the entire experience both seamless and well-aligned with the needs of organizations like ours.',
+                    Icons.favorite,
                   ),
                 ],
               ),
@@ -1316,17 +1347,41 @@ class _LandingPageState extends State<LandingPage>
             textAlign: TextAlign.center,
           ),
           SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context)),
+          Text(
+            'We are proud to partner with these esteemed organizations',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context)),
           Wrap(
             spacing: ResponsiveHelper.isMobile(context) ? 20 : 40,
             runSpacing: ResponsiveHelper.isMobile(context) ? 16 : 20,
             alignment: WrapAlignment.center,
             children: [
-              _buildPartnerLogo('Tata Group'),
-              _buildPartnerLogo('Reliance Foundation'),
-              _buildPartnerLogo('Infosys Foundation'),
-              _buildPartnerLogo('Wipro Foundation'),
-              _buildPartnerLogo('HDFC Bank'),
-              _buildPartnerLogo('ICICI Foundation'),
+              _buildPartnerLogo('Plan International India'),
+              _buildPartnerLogo('Anant National University'),
+              _buildPartnerLogo('National Law School of India University'),
+              _buildPartnerLogo('SOUL – School of Ultimate Leadership'),
+              _buildPartnerLogo('Shri Sathya Sai Institute'),
+              _buildPartnerLogo('Rishihood University'),
+              _buildPartnerLogo('Pratham'),
+              _buildPartnerLogo('CYDA'),
+              _buildPartnerLogo('SH Associates'),
+              _buildPartnerLogo('Light of Life Trust'),
+              _buildPartnerLogo('Rural Organisation for Poverty Eradication'),
+              _buildPartnerLogo('Foundation for Initiatives in Development'),
+              _buildPartnerLogo('Subhiksha Voluntary Organization'),
+              _buildPartnerLogo('Diya Foundation'),
+              _buildPartnerLogo('Shishu Mandir'),
+              _buildPartnerLogo('Akshara Foundation'),
+              _buildPartnerLogo('Christel House India'),
+              _buildPartnerLogo('YuvaLok Foundation'),
+              _buildPartnerLogo('Nudge Lifeskills Foundation'),
+              _buildPartnerLogo('Junglescapes Charitable Trust'),
+              _buildPartnerLogo('United Way of Bengaluru'),
+              _buildPartnerLogo('ASSCOD'),
             ],
           ),
         ],
@@ -1374,52 +1429,180 @@ class _LandingPageState extends State<LandingPage>
       padding: ResponsiveHelper.getResponsivePadding(context),
       child: Column(
         children: [
-          // Social Media Icons + Footer Links from wireframe
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.link,
-                color: AppTheme.surfaceWhite,
-                size: ResponsiveHelper.isMobile(context) ? 16 : 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'CPF Social Media & Links',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppTheme.surfaceWhite,
-                      fontWeight: FontWeight.w600,
-                      fontSize: ResponsiveHelper.getResponsiveFontSize(
-                        context,
-                        mobile: 14,
-                        tablet: 16,
-                        desktop: 18,
+          // Main Footer Content
+          ResponsiveHelper.getResponsiveLayout(
+            context: context,
+            mobile: Column(
+              children: [
+                _buildFooterSection('About CPF', [
+                  'Collaborative Philanthropy Foundation (CPF) is a leading organization dedicated to fostering meaningful partnerships between NGOs and donors.',
+                  'We provide comprehensive due diligence, impact assessment, and capacity building services to ensure maximum social impact.',
+                  'Our mission is to create a more transparent, accountable, and effective philanthropic ecosystem in India.',
+                ]),
+                const SizedBox(height: 32),
+                _buildFooterSection('Our Services', [
+                  'NGO Due Diligence',
+                  'Impact Assessment',
+                  'Capacity Building',
+                  'Grant Management',
+                  'Compliance Monitoring',
+                  'Impact Measurement',
+                ]),
+                const SizedBox(height: 32),
+                _buildFooterSection('Quick Links', [
+                  'NGO Registration',
+                  'Donor Portal',
+                  'Impact Reports',
+                  'Success Stories',
+                  'Resources',
+                  'Contact Us',
+                ]),
+                const SizedBox(height: 32),
+                _buildFooterSection('Contact Information', [
+                  'Email: info@cpfindia.org',
+                  'Phone: +91-80-1234-5678',
+                  'Address: Bangalore, Karnataka, India',
+                  'Working Hours: Mon-Fri 9AM-6PM',
+                ]),
+              ],
+            ),
+            tablet: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                    child: _buildFooterSection('About CPF', [
+                  'Collaborative Philanthropy Foundation (CPF) is a leading organization dedicated to fostering meaningful partnerships between NGOs and donors.',
+                  'We provide comprehensive due diligence, impact assessment, and capacity building services.',
+                ])),
+                const SizedBox(width: 32),
+                Expanded(
+                    child: _buildFooterSection('Our Services', [
+                  'NGO Due Diligence',
+                  'Impact Assessment',
+                  'Capacity Building',
+                  'Grant Management',
+                  'Compliance Monitoring',
+                ])),
+                const SizedBox(width: 32),
+                Expanded(
+                    child: _buildFooterSection('Quick Links', [
+                  'NGO Registration',
+                  'Donor Portal',
+                  'Impact Reports',
+                  'Success Stories',
+                  'Resources',
+                ])),
+                const SizedBox(width: 32),
+                Expanded(
+                    child: _buildFooterSection('Contact', [
+                  'Email: info@cpfindia.org',
+                  'Phone: +91-80-1234-5678',
+                  'Address: Bangalore, Karnataka',
+                ])),
+              ],
+            ),
+            desktop: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                    flex: 2,
+                    child: _buildFooterSection('About CPF', [
+                      'Collaborative Philanthropy Foundation (CPF) is a leading organization dedicated to fostering meaningful partnerships between NGOs and donors. We provide comprehensive due diligence, impact assessment, and capacity building services to ensure maximum social impact.',
+                      'Our mission is to create a more transparent, accountable, and effective philanthropic ecosystem in India.',
+                    ])),
+                const SizedBox(width: 48),
+                Expanded(
+                    child: _buildFooterSection('Our Services', [
+                  'NGO Due Diligence',
+                  'Impact Assessment',
+                  'Capacity Building',
+                  'Grant Management',
+                  'Compliance Monitoring',
+                  'Impact Measurement',
+                ])),
+                const SizedBox(width: 48),
+                Expanded(
+                    child: _buildFooterSection('Quick Links', [
+                  'NGO Registration',
+                  'Donor Portal',
+                  'Impact Reports',
+                  'Success Stories',
+                  'Resources',
+                  'Contact Us',
+                ])),
+                const SizedBox(width: 48),
+                Expanded(
+                    child: _buildFooterSection('Contact Information', [
+                  'Email: info@cpfindia.org',
+                  'Phone: +91-80-1234-5678',
+                  'Address: Bangalore, Karnataka, India',
+                  'Working Hours: Mon-Fri 9AM-6PM',
+                ])),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 48),
+
+          // Social Media & Links Section
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceWhite.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  'Connect With Us',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: AppTheme.surfaceWhite,
+                        fontWeight: FontWeight.bold,
                       ),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: ResponsiveHelper.isMobile(context) ? 16 : 24,
+                  runSpacing: ResponsiveHelper.isMobile(context) ? 8 : 12,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    _buildFooterLink(
+                      'Website',
+                      'https://cpfindia.org/',
+                      Icons.language,
                     ),
-              ),
-            ],
+                    _buildFooterLink(
+                      'LinkedIn',
+                      'https://linkedin.com/company/cpf',
+                      Icons.business,
+                    ),
+                    _buildFooterLink(
+                      'Twitter',
+                      'https://twitter.com/cpfindia',
+                      Icons.alternate_email,
+                    ),
+                    _buildFooterLink(
+                      'Facebook',
+                      'https://facebook.com/cpfindia',
+                      Icons.facebook,
+                    ),
+                    _buildFooterLink(
+                      'YouTube',
+                      'https://youtube.com/cpfindia',
+                      Icons.play_circle,
+                    ),
+                    _buildFooterLink(
+                      'Instagram',
+                      'https://instagram.com/cpfindia',
+                      Icons.camera_alt,
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
 
-          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context)),
-
-          Wrap(
-            spacing: ResponsiveHelper.isMobile(context) ? 16 : 24,
-            runSpacing: ResponsiveHelper.isMobile(context) ? 8 : 12,
-            children: [
-              _buildFooterLink(
-                'Website',
-                'https://cpfindia.org/',
-                Icons.language,
-              ),
-              _buildFooterLink(
-                'LinkedIn',
-                'LinkedIn Profile',
-                Icons.business,
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
 
           Container(
             height: 1,
@@ -1428,15 +1611,86 @@ class _LandingPageState extends State<LandingPage>
 
           const SizedBox(height: 24),
 
-          Text(
-            '© 2024 Collaborative Philanthropy Foundation. All rights reserved.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.surfaceWhite.withOpacity(0.8),
+          // Copyright and Legal
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  '© 2024 Collaborative Philanthropy Foundation. All rights reserved.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.surfaceWhite.withOpacity(0.8),
+                      ),
                 ),
-            textAlign: TextAlign.center,
+              ),
+              Wrap(
+                spacing: 24,
+                children: [
+                  TextButton(
+                    onPressed: () =>
+                        AppHelpers.showInfoSnackBar(context, 'Privacy Policy'),
+                    child: Text(
+                      'Privacy Policy',
+                      style: TextStyle(
+                          color: AppTheme.surfaceWhite.withOpacity(0.8)),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => AppHelpers.showInfoSnackBar(
+                        context, 'Terms of Service'),
+                    child: Text(
+                      'Terms of Service',
+                      style: TextStyle(
+                          color: AppTheme.surfaceWhite.withOpacity(0.8)),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () =>
+                        AppHelpers.showInfoSnackBar(context, 'Cookie Policy'),
+                    child: Text(
+                      'Cookie Policy',
+                      style: TextStyle(
+                          color: AppTheme.surfaceWhite.withOpacity(0.8)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFooterSection(String title, List<String> items) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: AppTheme.surfaceWhite,
+                fontWeight: FontWeight.bold,
+                fontSize: ResponsiveHelper.getResponsiveFontSize(
+                  context,
+                  mobile: 16,
+                  tablet: 18,
+                  desktop: 20,
+                ),
+              ),
+        ),
+        const SizedBox(height: 16),
+        ...items.map((item) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                item,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.surfaceWhite.withOpacity(0.8),
+                      height: 1.4,
+                    ),
+              ),
+            )),
+      ],
     );
   }
 
