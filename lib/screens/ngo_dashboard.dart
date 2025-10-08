@@ -10,6 +10,7 @@ import 'package:cpf_portal/util/theme.dart';
 import 'package:cpf_portal/util/constants.dart';
 import 'package:cpf_portal/widgets/custom_button.dart';
 import 'package:cpf_portal/widgets/custome_card.dart';
+import 'package:cpf_portal/widgets/certificates_section.dart';
 import 'package:cpf_portal/providers/firestore_file_service.dart';
 import '../widgets/loading_widget.dart';
 import '../widgets/empty_state_widget.dart';
@@ -1299,84 +1300,105 @@ class _NGODashboardState extends State<NGODashboard>
         final ngoData = snapshot.data!.data() as Map<String, dynamic>;
         final status = ngoData['status'] ?? 'pending';
 
-        return SingleChildScrollView(
-          padding: AppHelpers.getResponsivePadding(context),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'NGO Certificates',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Download your official CPF certificates and documents',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
-              ),
-              const SizedBox(height: 24),
+        // Extract NGO information for certificates
+        final ngoName = ngoData['ngo_name'] ?? 'NGO Name';
+        final ngoAddress = ngoData['address'] ?? 'Address not provided';
+        final cfoName = ngoData['cfo_name'] ?? 'CFO Name';
+        final logoPath = ngoData['logo_path'] ?? 'assets/images/CPF_Logo.jpg';
 
-              // Status-based certificate display
-              if (status == 'approved' || status == 'verified') ...[
-                // Approved NGO certificates
-                _buildCertificateCard(
-                  'NGO Registration Certificate',
-                  'Official registration certificate from CPF',
-                  'assets/docs/1 CERT_Compliance_NGO_6Feb25.docx',
-                  Icons.workspace_premium,
-                  Colors.green,
-                ),
-                const SizedBox(height: 16),
-                _buildCertificateCard(
-                  'Compliance Certificate',
-                  'Certificate of compliance with CPF standards',
-                  'assets/docs/CPF Letterhead - Copy (2).docx',
-                  Icons.verified,
-                  Colors.blue,
-                ),
-                const SizedBox(height: 16),
-                _buildCertificateCard(
-                  'Impact Assessment Report',
-                  'Detailed impact assessment and evaluation report',
-                  'assets/docs/impact_report.pdf',
-                  Icons.assessment,
-                  Colors.orange,
-                ),
-              ] else if (status == 'under_review') ...[
-                // Under review message
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
-                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                    borderRadius: BorderRadius.circular(12),
+        return SingleChildScrollView(
+          child: Column(
+            children: [
+              // Status indicator
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: status == 'approved' || status == 'verified'
+                      ? Colors.green.withOpacity(0.1)
+                      : status == 'under_review'
+                          ? Colors.blue.withOpacity(0.1)
+                          : Colors.orange.withOpacity(0.1),
+                  border: Border.all(
+                    color: status == 'approved' || status == 'verified'
+                        ? Colors.green
+                        : status == 'under_review'
+                            ? Colors.blue
+                            : Colors.orange,
+                    width: 2,
                   ),
-                  child: Column(
-                    children: [
-                      Icon(Icons.visibility, size: 48, color: Colors.blue),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Certificates Under Review',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
-                            ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Your NGO is currently under review. Certificates will be available once the review process is complete.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.textSecondary,
-                            ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ] else ...[
+                child: Row(
+                  children: [
+                    Icon(
+                      status == 'approved' || status == 'verified'
+                          ? Icons.check_circle
+                          : status == 'under_review'
+                              ? Icons.visibility
+                              : Icons.schedule,
+                      color: status == 'approved' || status == 'verified'
+                          ? Colors.green
+                          : status == 'under_review'
+                              ? Colors.blue
+                              : Colors.orange,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            status == 'approved' || status == 'verified'
+                                ? 'NGO Approved - Certificates Available'
+                                : status == 'under_review'
+                                    ? 'Under Review - Certificates Pending'
+                                    : 'Registration Pending - Certificates Not Available',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: status == 'approved' ||
+                                          status == 'verified'
+                                      ? Colors.green
+                                      : status == 'under_review'
+                                          ? Colors.blue
+                                          : Colors.orange,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            status == 'approved' || status == 'verified'
+                                ? 'You can now download your official certificates'
+                                : status == 'under_review'
+                                    ? 'Your application is being reviewed. Certificates will be available once approved.'
+                                    : 'Complete your registration to access certificates',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: AppTheme.textSecondary,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Certificates section (only show if approved/verified)
+              if (status == 'approved' || status == 'verified')
+                CertificatesSection(
+                  ngoName: ngoName,
+                  ngoAddress: ngoAddress,
+                  cfoName: cfoName,
+                  logoPath: logoPath,
+                )
+              else ...[
                 // Pending verification message
                 Container(
                   padding: const EdgeInsets.all(24),
@@ -1408,137 +1430,10 @@ class _NGODashboardState extends State<NGODashboard>
                   ),
                 ),
               ],
-
-              const SizedBox(height: 32),
-
-              // Video section
-              if (status == 'approved' || status == 'verified') ...[
-                Text(
-                  'Watch Our Impact',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  height: 200,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            AppTheme.primaryRed,
-                            AppTheme.primaryRed.withOpacity(0.8),
-                          ],
-                        ),
-                      ),
-                      child: const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.play_circle_filled,
-                              size: 60,
-                              color: Colors.white,
-                            ),
-                            SizedBox(height: 12),
-                            Text(
-                              'Watch Our Impact Video',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Click to play',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
         );
       },
     );
-  }
-
-  Widget _buildCertificateCard(String title, String description,
-      String filePath, IconData icon, Color color) {
-    return Card(
-      elevation: 4,
-      child: InkWell(
-        onTap: () => _downloadCertificate(filePath, title),
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppTheme.textSecondary,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.download,
-                color: AppTheme.primaryRed,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _downloadCertificate(String filePath, String title) {
-    // In a real app, this would download the certificate
-    AppHelpers.showInfoSnackBar(context, 'Downloading $title...');
   }
 }

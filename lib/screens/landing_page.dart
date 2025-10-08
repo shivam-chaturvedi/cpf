@@ -8,6 +8,8 @@ import 'package:cpf_portal/util/responsive.dart';
 import 'package:cpf_portal/widgets/custome_card.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_navbar.dart';
+import '../widgets/inline_video_player.dart';
+import '../widgets/organizations_carousel.dart';
 
 // Added missing BannerImageRotator class
 class BannerImageRotator extends StatefulWidget {
@@ -50,7 +52,6 @@ class _BannerImageRotatorState extends State<BannerImageRotator> {
       height: ResponsiveHelper.getResponsiveImageHeight(context),
       width: double.infinity,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.3),
@@ -59,29 +60,26 @@ class _BannerImageRotatorState extends State<BannerImageRotator> {
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 800),
-          child: Image.asset(
-            _images[_currentIndex],
-            key: ValueKey<String>(_images[_currentIndex]),
-            fit: BoxFit.contain,
-            width: double.infinity,
-            height: double.infinity,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                color: AppTheme.primaryRed,
-                child: const Center(
-                  child: Icon(
-                    Icons.image,
-                    color: AppTheme.surfaceWhite,
-                    size: 100,
-                  ),
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 800),
+        child: Image.asset(
+          _images[_currentIndex],
+          key: ValueKey<String>(_images[_currentIndex]),
+          fit: BoxFit.cover, // Changed from contain to cover for full width
+          width: double.infinity,
+          height: double.infinity,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              color: AppTheme.primaryRed,
+              child: const Center(
+                child: Icon(
+                  Icons.image,
+                  color: AppTheme.surfaceWhite,
+                  size: 100,
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -169,7 +167,6 @@ class _LandingPageState extends State<LandingPage>
             _buildVideoSection(),
             _buildTestimonialsSection(),
             Container(key: _servicesSectionKey, child: _buildServicesSection()),
-            // _buildImpactSection(), // Hidden as requested
             _buildPartnersSection(),
             Container(key: _faqSectionKey, child: _buildFAQSection()),
             Container(key: _supportSectionKey, child: _buildSupportSection()),
@@ -181,151 +178,162 @@ class _LandingPageState extends State<LandingPage>
   }
 
   Widget _buildHeroSection() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: AppTheme.primaryGradient,
-      ),
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: Padding(
-            padding: AppHelpers.getResponsivePadding(context),
-            child: Column(
-              children: [
-                // Banner Image Rotator
-                const BannerImageRotator(),
+    return Column(
+      children: [
+        // Full width banner
+        const BannerImageRotator(),
 
-                const SizedBox(height: 40),
-
-                Text(
-                  'Empowering NGOs Through Trust & Transparency',
-                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                        color: AppTheme.surfaceWhite,
-                        fontWeight: FontWeight.bold,
-                        height: 1.2,
-                        fontSize: ResponsiveHelper.getResponsiveFontSize(
-                          context,
-                          mobile: 24,
-                          tablet: 32,
-                          desktop: 40,
-                        ),
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-
-                SizedBox(
-                    height: ResponsiveHelper.getResponsiveSpacing(context)),
-
-                // Overview text from blueprint
-                Container(
-                  constraints: BoxConstraints(
-                    maxWidth: ResponsiveHelper.isMobile(context)
-                        ? double.infinity
-                        : 800,
-                  ),
-                  child: Text(
-                    'The Collaborative Philanthropy Foundation (CPF) is a forward-looking Section 8 company that builds upon the legacy and experience of Charities Aid Foundation India, a trusted entity that has been serving the development sector since 1998. CPF operates as an impact-led, research and data-driven organization, offering customized support to a wide array of stakeholders including companies, CSR boards, civil society organizations, and philanthropic foundations.',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: AppTheme.surfaceWhite.withOpacity(0.9),
-                          height: 1.6,
-                          fontSize: ResponsiveHelper.getResponsiveFontSize(
-                            context,
-                            mobile: 14,
-                            tablet: 16,
-                            desktop: 18,
-                          ),
-                        ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-
-                // Benefits checkmarks from wireframe
-                Wrap(
-                  spacing: 24,
-                  runSpacing: 16,
+        // Content section with gradient background
+        Container(
+          decoration: const BoxDecoration(
+            gradient: AppTheme.primaryGradient,
+          ),
+          child: SlideTransition(
+            position: _slideAnimation,
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: Padding(
+                padding: AppHelpers.getResponsivePadding(context),
+                child: Column(
                   children: [
-                    _buildBenefitItem('✅ Register your NGO'),
-                    _buildBenefitItem('✅ Get Validated'),
-                    _buildBenefitItem('✅ Submit Proposals'),
-                    _buildBenefitItem('✅ Build Donor Trust'),
+                    const SizedBox(height: 40),
+
+                    Text(
+                      'Empowering NGOs Through Trust & Transparency',
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineLarge
+                          ?.copyWith(
+                            color: AppTheme.surfaceWhite,
+                            fontWeight: FontWeight.bold,
+                            height: 1.2,
+                            fontSize: ResponsiveHelper.getResponsiveFontSize(
+                              context,
+                              mobile: 24,
+                              tablet: 32,
+                              desktop: 40,
+                            ),
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    SizedBox(
+                        height: ResponsiveHelper.getResponsiveSpacing(context)),
+
+                    // Overview text from blueprint
+                    Container(
+                      constraints: BoxConstraints(
+                        maxWidth: ResponsiveHelper.isMobile(context)
+                            ? double.infinity
+                            : 800,
+                      ),
+                      child: Text(
+                        'The Collaborative Philanthropy Foundation (CPF) is a forward-looking Section 8 company that builds upon the legacy and experience of Charities Aid Foundation India, a trusted entity that has been serving the development sector since 1998. CPF operates as an impact-led, research and data-driven organization, offering customized support to a wide array of stakeholders including companies, CSR boards, civil society organizations, and philanthropic foundations.',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: AppTheme.surfaceWhite.withOpacity(0.9),
+                              height: 1.6,
+                              fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                context,
+                                mobile: 14,
+                                tablet: 16,
+                                desktop: 18,
+                              ),
+                            ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Benefits checkmarks from wireframe
+                    Wrap(
+                      spacing: 24,
+                      runSpacing: 16,
+                      children: [
+                        _buildBenefitItem('✅ Register your NGO'),
+                        _buildBenefitItem('✅ Get Validated'),
+                        _buildBenefitItem('✅ Submit Proposals'),
+                        _buildBenefitItem('✅ Build Donor Trust'),
+                      ],
+                    ),
+
+                    const SizedBox(height: 40),
+
+                    // CTA Buttons from wireframe
+                    ResponsiveHelper.getResponsiveLayout(
+                      context: context,
+                      mobile: Column(
+                        children: [
+                          CustomButton(
+                            text: 'Register Your NGO',
+                            onPressed: () =>
+                                Navigator.pushNamed(context, '/ngo-register'),
+                            icon: Icons.app_registration,
+                            backgroundColor: AppTheme.primaryOrange,
+                            width: double.infinity,
+                          ),
+                          const SizedBox(height: 16),
+                          CustomButton(
+                            text: 'Learn More',
+                            onPressed: () =>
+                                _scrollToSection(_benefitsSectionKey),
+                            icon: Icons.info_outline,
+                            isOutlined: true,
+                            backgroundColor: AppTheme.surfaceWhite,
+                            width: double.infinity,
+                          ),
+                        ],
+                      ),
+                      tablet: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CustomButton(
+                            text: 'Register Your NGO',
+                            onPressed: () =>
+                                Navigator.pushNamed(context, '/ngo-register'),
+                            icon: Icons.app_registration,
+                            backgroundColor: AppTheme.primaryOrange,
+                          ),
+                          const SizedBox(width: 16),
+                          CustomButton(
+                            text: 'Learn More',
+                            onPressed: () =>
+                                _scrollToSection(_benefitsSectionKey),
+                            icon: Icons.info_outline,
+                            isOutlined: true,
+                            backgroundColor: AppTheme.surfaceWhite,
+                          ),
+                        ],
+                      ),
+                      desktop: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CustomButton(
+                            text: 'Register Your NGO',
+                            onPressed: () =>
+                                Navigator.pushNamed(context, '/ngo-register'),
+                            icon: Icons.app_registration,
+                            backgroundColor: AppTheme.primaryOrange,
+                          ),
+                          const SizedBox(width: 16),
+                          CustomButton(
+                            text: 'Learn More',
+                            onPressed: () =>
+                                _scrollToSection(_benefitsSectionKey),
+                            icon: Icons.info_outline,
+                            isOutlined: true,
+                            backgroundColor: AppTheme.surfaceWhite,
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-
-                const SizedBox(height: 40),
-
-                // CTA Buttons from wireframe
-                ResponsiveHelper.getResponsiveLayout(
-                  context: context,
-                  mobile: Column(
-                    children: [
-                      CustomButton(
-                        text: 'Register Your NGO',
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/ngo-register'),
-                        icon: Icons.app_registration,
-                        backgroundColor: AppTheme.primaryOrange,
-                        width: double.infinity,
-                      ),
-                      const SizedBox(height: 16),
-                      CustomButton(
-                        text: 'Learn More',
-                        onPressed: () => _scrollToSection(_benefitsSectionKey),
-                        icon: Icons.info_outline,
-                        isOutlined: true,
-                        backgroundColor: AppTheme.surfaceWhite,
-                        width: double.infinity,
-                      ),
-                    ],
-                  ),
-                  tablet: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CustomButton(
-                        text: 'Register Your NGO',
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/ngo-register'),
-                        icon: Icons.app_registration,
-                        backgroundColor: AppTheme.primaryOrange,
-                      ),
-                      const SizedBox(width: 16),
-                      CustomButton(
-                        text: 'Learn More',
-                        onPressed: () => _scrollToSection(_benefitsSectionKey),
-                        icon: Icons.info_outline,
-                        isOutlined: true,
-                        backgroundColor: AppTheme.surfaceWhite,
-                      ),
-                    ],
-                  ),
-                  desktop: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CustomButton(
-                        text: 'Register Your NGO',
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/ngo-register'),
-                        icon: Icons.app_registration,
-                        backgroundColor: AppTheme.primaryOrange,
-                      ),
-                      const SizedBox(width: 16),
-                      CustomButton(
-                        text: 'Learn More',
-                        onPressed: () => _scrollToSection(_benefitsSectionKey),
-                        icon: Icons.info_outline,
-                        isOutlined: true,
-                        backgroundColor: AppTheme.surfaceWhite,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        )
+      ],
     );
   }
 
@@ -830,83 +838,13 @@ class _LandingPageState extends State<LandingPage>
             textAlign: TextAlign.center,
           ),
           SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context)),
-          Container(
+          InlineVideoPlayer(
+            videoUrl:
+                'https://iqrdctnlggmkjokuzggi.supabase.co/storage/v1/object/public/documents/our-impact.mp4',
+            backgroundImagePath:
+                'assets/images/video-bg.jpg', // Optional background image
+            autoPlay: false,
             height: ResponsiveHelper.isMobile(context) ? 200 : 300,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Stack(
-                children: [
-                  // Video container with actual video
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          AppTheme.primaryRed,
-                          AppTheme.primaryRed.withOpacity(0.8),
-                        ],
-                      ),
-                    ),
-                    child: const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.play_circle_filled,
-                            size: 80,
-                            color: Colors.white,
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'Watch Our Impact Video',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Click to play our impact story',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Play button overlay
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.play_arrow,
-                        size: 40,
-                        color: AppTheme.primaryRed,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ),
         ],
       ),
@@ -947,39 +885,54 @@ class _LandingPageState extends State<LandingPage>
             context: context,
             mobile: Column(
               children: [
-                _buildTestimonialCard(
-                  'Satyanarayana Reddy Suravarapu',
-                  'Joint Director, Uma Educational and Technical Society',
-                  'We sincerely appreciate the successful completion of the due-diligence process for Uma Educational and Technical Society. We extend our heartfelt gratitude to CPF for recognizing our efforts and for your valuable insights that will help us improve and grow as an organization.',
-                  Icons.school,
+                SizedBox(
+                  height: 280,
+                  child: _buildTestimonialCard(
+                    'Satyanarayana Reddy Suravarapu',
+                    'Joint Director, Uma Educational and Technical Society',
+                    'We sincerely appreciate the successful completion of the due-diligence process for Uma Educational and Technical Society. We extend our heartfelt gratitude to CPF for recognizing our efforts and for your valuable insights that will help us improve and grow as an organization.',
+                    Icons.school,
+                  ),
                 ),
                 const SizedBox(height: 20),
-                _buildTestimonialCard(
-                  'Udhaya Kumar R',
-                  'General Manager, Karadi Path Education Company Pvt Ltd',
-                  'We deeply value the opportunity to collaborate with CPF and sincerely appreciate the recognition of our work for the community.',
-                  Icons.business,
+                SizedBox(
+                  height: 280,
+                  child: _buildTestimonialCard(
+                    'Udhaya Kumar R',
+                    'General Manager, Karadi Path Education Company Pvt Ltd',
+                    'We deeply value the opportunity to collaborate with CPF and sincerely appreciate the recognition of our work for the community.',
+                    Icons.business,
+                  ),
                 ),
                 const SizedBox(height: 20),
-                _buildTestimonialCard(
-                  'Veena',
-                  'Akshara Foundation',
-                  'We truly appreciate CPF\'s professional approach throughout this process. It was a pleasure working with the team—the communication was clear and supportive at every step, making the entire experience both seamless and well-aligned with the needs of organizations like ours.',
-                  Icons.favorite,
+                SizedBox(
+                  height: 280,
+                  child: _buildTestimonialCard(
+                    'Veena',
+                    'Akshara Foundation',
+                    'We truly appreciate CPF\'s professional approach throughout this process. It was a pleasure working with the team—the communication was clear and supportive at every step, making the entire experience both seamless and well-aligned with the needs of organizations like ours.',
+                    Icons.favorite,
+                  ),
                 ),
                 const SizedBox(height: 20),
-                _buildTestimonialCard(
-                  'Patrick Fernandes',
-                  'Jr. Accountant, Diya Foundation',
-                  'It is a good experience to work with you all.',
-                  Icons.thumb_up,
+                SizedBox(
+                  height: 280,
+                  child: _buildTestimonialCard(
+                    'Patrick Fernandes',
+                    'Jr. Accountant, Diya Foundation',
+                    'It is a good experience to work with you all.',
+                    Icons.thumb_up,
+                  ),
                 ),
                 const SizedBox(height: 20),
-                _buildTestimonialCard(
-                  'DP Daniel',
-                  'Gen Mgr – Ops, YuvaLok Foundation',
-                  'YuvaLok is truly grateful to CPF for enabling us to scale-up in our reporting standards and seeing that all our documents are up to date and valid. Though detailed, it has kept us fully ready. Appreciate the work you all are doing and we are glad we can continue this meaningful partnership.',
-                  Icons.trending_up,
+                SizedBox(
+                  height: 280,
+                  child: _buildTestimonialCard(
+                    'DP Daniel',
+                    'Gen Mgr – Ops, YuvaLok Foundation',
+                    'YuvaLok is truly grateful to CPF for enabling us to scale-up in our reporting standards and seeing that all our documents are up to date and valid. Though detailed, it has kept us fully ready. Appreciate the work you all are doing and we are glad we can continue this meaningful partnership.',
+                    Icons.trending_up,
+                  ),
                 ),
               ],
             ),
@@ -987,25 +940,34 @@ class _LandingPageState extends State<LandingPage>
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildTestimonialCard(
-                    'Satyanarayana Reddy Suravarapu',
-                    'Joint Director, Uma Educational and Technical Society',
-                    'We sincerely appreciate the successful completion of the due-diligence process for Uma Educational and Technical Society. We extend our heartfelt gratitude to CPF for recognizing our efforts and for your valuable insights that will help us improve and grow as an organization.',
-                    Icons.school,
+                  SizedBox(
+                    height: 320,
+                    child: _buildTestimonialCard(
+                      'Satyanarayana Reddy Suravarapu',
+                      'Joint Director, Uma Educational and Technical Society',
+                      'We sincerely appreciate the successful completion of the due-diligence process for Uma Educational and Technical Society. We extend our heartfelt gratitude to CPF for recognizing our efforts and for your valuable insights that will help us improve and grow as an organization.',
+                      Icons.school,
+                    ),
                   ),
                   const SizedBox(width: 20),
-                  _buildTestimonialCard(
-                    'Udhaya Kumar R',
-                    'General Manager, Karadi Path Education Company Pvt Ltd',
-                    'We deeply value the opportunity to collaborate with CPF and sincerely appreciate the recognition of our work for the community.',
-                    Icons.business,
+                  SizedBox(
+                    height: 320,
+                    child: _buildTestimonialCard(
+                      'Udhaya Kumar R',
+                      'General Manager, Karadi Path Education Company Pvt Ltd',
+                      'We deeply value the opportunity to collaborate with CPF and sincerely appreciate the recognition of our work for the community.',
+                      Icons.business,
+                    ),
                   ),
                   const SizedBox(width: 20),
-                  _buildTestimonialCard(
-                    'Veena',
-                    'Akshara Foundation',
-                    'We truly appreciate CPF\'s professional approach throughout this process. It was a pleasure working with the team—the communication was clear and supportive at every step, making the entire experience both seamless and well-aligned with the needs of organizations like ours.',
-                    Icons.favorite,
+                  SizedBox(
+                    height: 320,
+                    child: _buildTestimonialCard(
+                      'Veena',
+                      'Akshara Foundation',
+                      'We truly appreciate CPF\'s professional approach throughout this process. It was a pleasure working with the team—the communication was clear and supportive at every step, making the entire experience both seamless and well-aligned with the needs of organizations like ours.',
+                      Icons.favorite,
+                    ),
                   ),
                 ],
               ),
@@ -1014,25 +976,34 @@ class _LandingPageState extends State<LandingPage>
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildTestimonialCard(
-                    'Satyanarayana Reddy Suravarapu',
-                    'Joint Director, Uma Educational and Technical Society',
-                    'We sincerely appreciate the successful completion of the due-diligence process for Uma Educational and Technical Society. We extend our heartfelt gratitude to CPF for recognizing our efforts and for your valuable insights that will help us improve and grow as an organization.',
-                    Icons.school,
+                  SizedBox(
+                    height: 340,
+                    child: _buildTestimonialCard(
+                      'Satyanarayana Reddy Suravarapu',
+                      'Joint Director, Uma Educational and Technical Society',
+                      'We sincerely appreciate the successful completion of the due-diligence process for Uma Educational and Technical Society. We extend our heartfelt gratitude to CPF for recognizing our efforts and for your valuable insights that will help us improve and grow as an organization.',
+                      Icons.school,
+                    ),
                   ),
                   const SizedBox(width: 20),
-                  _buildTestimonialCard(
-                    'Udhaya Kumar R',
-                    'General Manager, Karadi Path Education Company Pvt Ltd',
-                    'We deeply value the opportunity to collaborate with CPF and sincerely appreciate the recognition of our work for the community.',
-                    Icons.business,
+                  SizedBox(
+                    height: 340,
+                    child: _buildTestimonialCard(
+                      'Udhaya Kumar R',
+                      'General Manager, Karadi Path Education Company Pvt Ltd',
+                      'We deeply value the opportunity to collaborate with CPF and sincerely appreciate the recognition of our work for the community.',
+                      Icons.business,
+                    ),
                   ),
                   const SizedBox(width: 20),
-                  _buildTestimonialCard(
-                    'Veena',
-                    'Akshara Foundation',
-                    'We truly appreciate CPF\'s professional approach throughout this process. It was a pleasure working with the team—the communication was clear and supportive at every step, making the entire experience both seamless and well-aligned with the needs of organizations like ours.',
-                    Icons.favorite,
+                  SizedBox(
+                    height: 340,
+                    child: _buildTestimonialCard(
+                      'Veena',
+                      'Akshara Foundation',
+                      'We truly appreciate CPF\'s professional approach throughout this process. It was a pleasure working with the team—the communication was clear and supportive at every step, making the entire experience both seamless and well-aligned with the needs of organizations like ours.',
+                      Icons.favorite,
+                    ),
                   ),
                 ],
               ),
@@ -1063,6 +1034,7 @@ class _LandingPageState extends State<LandingPage>
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.max,
         children: [
           Row(
             children: [
@@ -1091,13 +1063,15 @@ class _LandingPageState extends State<LandingPage>
             ],
           ),
           const SizedBox(height: 16),
-          Text(
-            '"$quote"',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondary,
-                  fontStyle: FontStyle.italic,
-                  height: 1.5,
-                ),
+          Expanded(
+            child: Text(
+              '"$quote"',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textSecondary,
+                    fontStyle: FontStyle.italic,
+                    height: 1.5,
+                  ),
+            ),
           ),
           const SizedBox(height: 16),
           Row(
@@ -1114,318 +1088,19 @@ class _LandingPageState extends State<LandingPage>
     );
   }
 
-  Widget _buildImpactSection() {
-    return Container(
-      padding: ResponsiveHelper.getResponsivePadding(context),
-      child: Column(
-        children: [
-          Text(
-            'Our Impact Stories',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary,
-                  fontSize: ResponsiveHelper.getResponsiveFontSize(
-                    context,
-                    mobile: 20,
-                    tablet: 24,
-                    desktop: 28,
-                  ),
-                ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context)),
-          ResponsiveHelper.getResponsiveLayout(
-            context: context,
-            mobile: Column(
-              children: [
-                _buildImpactCard(
-                  'Education Initiative',
-                  'Built 50 schools in rural areas, impacting 10,000+ children',
-                  'images/Banner1.png',
-                  Colors.blue,
-                ),
-                const SizedBox(height: 20),
-                _buildImpactCard(
-                  'Healthcare Access',
-                  'Provided medical care to 25,000+ underserved families',
-                  'images/Banner2.png',
-                  Colors.green,
-                ),
-                const SizedBox(height: 20),
-                _buildImpactCard(
-                  'Environmental Conservation',
-                  'Planted 100,000+ trees and restored 500 acres of forest',
-                  'images/Banner3.png',
-                  Colors.teal,
-                ),
-              ],
-            ),
-            tablet: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildImpactCard(
-                        'Education Initiative',
-                        'Built 50 schools in rural areas, impacting 10,000+ children',
-                        'images/Banner1.png',
-                        Colors.blue,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildImpactCard(
-                        'Healthcare Access',
-                        'Provided medical care to 25,000+ underserved families',
-                        'images/Banner2.png',
-                        Colors.green,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                _buildImpactCard(
-                  'Environmental Conservation',
-                  'Planted 100,000+ trees and restored 500 acres of forest',
-                  'images/Banner3.png',
-                  Colors.teal,
-                ),
-              ],
-            ),
-            desktop: Row(
-              children: [
-                Expanded(
-                  child: _buildImpactCard(
-                    'Education Initiative',
-                    'Built 50 schools in rural areas, impacting 10,000+ children',
-                    'images/Banner1.png',
-                    Colors.blue,
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: _buildImpactCard(
-                    'Healthcare Access',
-                    'Provided medical care to 25,000+ underserved families',
-                    'images/Banner2.png',
-                    Colors.green,
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: _buildImpactCard(
-                    'Environmental Conservation',
-                    'Planted 100,000+ trees and restored 500 acres of forest',
-                    'images/Banner3.png',
-                    Colors.teal,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildImpactCard(
-      String title, String description, String imagePath, Color color) {
-    return Container(
-      height: ResponsiveHelper.isMobile(context) ? 250 : 300,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Stack(
-          children: [
-            Image.asset(
-              imagePath,
-              width: double.infinity,
-              height: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: color.withOpacity(0.8),
-                  child: Center(
-                    child: Icon(
-                      Icons.image,
-                      size: 60,
-                      color: Colors.white,
-                    ),
-                  ),
-                );
-              },
-            ),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.7),
-                  ],
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Padding(
-                padding: ResponsiveHelper.isMobile(context)
-                    ? const EdgeInsets.all(16)
-                    : const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: ResponsiveHelper.getResponsiveFontSize(
-                              context,
-                              mobile: 16,
-                              tablet: 18,
-                              desktop: 20,
-                            ),
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      description,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.white.withOpacity(0.9),
-                            height: 1.4,
-                            fontSize: ResponsiveHelper.getResponsiveFontSize(
-                              context,
-                              mobile: 12,
-                              tablet: 14,
-                              desktop: 16,
-                            ),
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildPartnersSection() {
     return Container(
       padding: ResponsiveHelper.getResponsivePadding(context),
       decoration: BoxDecoration(
         color: Colors.grey[50],
       ),
-      child: Column(
-        children: [
-          Text(
-            'Trusted by Leading Organizations',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary,
-                  fontSize: ResponsiveHelper.getResponsiveFontSize(
-                    context,
-                    mobile: 18,
-                    tablet: 22,
-                    desktop: 26,
-                  ),
-                ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context)),
-          Text(
-            'We are proud to partner with these esteemed organizations',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppTheme.textSecondary,
-                ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context)),
-          Wrap(
-            spacing: ResponsiveHelper.isMobile(context) ? 20 : 40,
-            runSpacing: ResponsiveHelper.isMobile(context) ? 16 : 20,
-            alignment: WrapAlignment.center,
-            children: [
-              _buildPartnerLogo('Plan International India'),
-              _buildPartnerLogo('Anant National University'),
-              _buildPartnerLogo('National Law School of India University'),
-              _buildPartnerLogo('SOUL – School of Ultimate Leadership'),
-              _buildPartnerLogo('Shri Sathya Sai Institute'),
-              _buildPartnerLogo('Rishihood University'),
-              _buildPartnerLogo('Pratham'),
-              _buildPartnerLogo('CYDA'),
-              _buildPartnerLogo('SH Associates'),
-              _buildPartnerLogo('Light of Life Trust'),
-              _buildPartnerLogo('Rural Organisation for Poverty Eradication'),
-              _buildPartnerLogo('Foundation for Initiatives in Development'),
-              _buildPartnerLogo('Subhiksha Voluntary Organization'),
-              _buildPartnerLogo('Diya Foundation'),
-              _buildPartnerLogo('Shishu Mandir'),
-              _buildPartnerLogo('Akshara Foundation'),
-              _buildPartnerLogo('Christel House India'),
-              _buildPartnerLogo('YuvaLok Foundation'),
-              _buildPartnerLogo('Nudge Lifeskills Foundation'),
-              _buildPartnerLogo('Junglescapes Charitable Trust'),
-              _buildPartnerLogo('United Way of Bengaluru'),
-              _buildPartnerLogo('ASSCOD'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPartnerLogo(String name) {
-    return Container(
-      width: ResponsiveHelper.isMobile(context) ? 100 : 120,
-      height: ResponsiveHelper.isMobile(context) ? 60 : 80,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Text(
-          name,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textSecondary,
-                fontSize: ResponsiveHelper.getResponsiveFontSize(
-                  context,
-                  mobile: 12,
-                  tablet: 14,
-                  desktop: 16,
-                ),
-              ),
-          textAlign: TextAlign.center,
-        ),
-      ),
+      child: const OrganizationsCarousel(),
     );
   }
 
   Widget _buildFooter() {
     return Container(
-      color: AppTheme.textPrimary,
+      color: Colors.yellow,
       padding: ResponsiveHelper.getResponsivePadding(context),
       child: Column(
         children: [
@@ -1556,7 +1231,7 @@ class _LandingPageState extends State<LandingPage>
                 Text(
                   'Connect With Us',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppTheme.surfaceWhite,
+                        color: Colors.black,
                         fontWeight: FontWeight.bold,
                       ),
                 ),
@@ -1576,26 +1251,6 @@ class _LandingPageState extends State<LandingPage>
                       'https://linkedin.com/company/cpf',
                       Icons.business,
                     ),
-                    _buildFooterLink(
-                      'Twitter',
-                      'https://twitter.com/cpfindia',
-                      Icons.alternate_email,
-                    ),
-                    _buildFooterLink(
-                      'Facebook',
-                      'https://facebook.com/cpfindia',
-                      Icons.facebook,
-                    ),
-                    _buildFooterLink(
-                      'YouTube',
-                      'https://youtube.com/cpfindia',
-                      Icons.play_circle,
-                    ),
-                    _buildFooterLink(
-                      'Instagram',
-                      'https://instagram.com/cpfindia',
-                      Icons.camera_alt,
-                    ),
                   ],
                 ),
               ],
@@ -1606,7 +1261,7 @@ class _LandingPageState extends State<LandingPage>
 
           Container(
             height: 1,
-            color: AppTheme.surfaceWhite.withOpacity(0.2),
+            color: Colors.black.withOpacity(0.2),
           ),
 
           const SizedBox(height: 24),
@@ -1619,7 +1274,7 @@ class _LandingPageState extends State<LandingPage>
                 child: Text(
                   '© 2024 Collaborative Philanthropy Foundation. All rights reserved.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.surfaceWhite.withOpacity(0.8),
+                        color: Colors.black.withOpacity(0.8),
                       ),
                 ),
               ),
@@ -1669,7 +1324,7 @@ class _LandingPageState extends State<LandingPage>
         Text(
           title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: AppTheme.surfaceWhite,
+                color: Colors.black,
                 fontWeight: FontWeight.bold,
                 fontSize: ResponsiveHelper.getResponsiveFontSize(
                   context,
@@ -1685,7 +1340,7 @@ class _LandingPageState extends State<LandingPage>
               child: Text(
                 item,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.surfaceWhite.withOpacity(0.8),
+                      color: Colors.black.withOpacity(0.8),
                       height: 1.4,
                     ),
               ),
@@ -1705,7 +1360,7 @@ class _LandingPageState extends State<LandingPage>
           children: [
             Icon(
               icon,
-              color: AppTheme.surfaceWhite.withOpacity(0.8),
+              color: Colors.black.withOpacity(0.8),
               size: 20,
             ),
             const SizedBox(width: 8),
@@ -1715,14 +1370,14 @@ class _LandingPageState extends State<LandingPage>
                 Text(
                   title,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.surfaceWhite,
+                        color: Colors.black,
                         fontWeight: FontWeight.w500,
                       ),
                 ),
                 Text(
                   subtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.surfaceWhite.withOpacity(0.7),
+                        color: Colors.black.withOpacity(0.7),
                       ),
                 ),
               ],

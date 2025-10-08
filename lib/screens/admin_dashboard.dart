@@ -12,6 +12,7 @@ import '../widgets/loading_widget.dart';
 import '../widgets/custom_navbar.dart';
 import '../services/certificate_service.dart';
 import '../services/donor_ngo_service.dart';
+import '../services/certificate_generator.dart';
 import '../providers/firestore_file_service.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -2420,52 +2421,192 @@ class _AdminDashboardState extends State<AdminDashboard>
   void _showNGODetails(Map<String, dynamic> ngo) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(ngo['organizationName'] ?? 'NGO Details'),
-        content: SingleChildScrollView(
+      builder: (context) => Dialog(
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          height: MediaQuery.of(context).size.height * 0.9,
+          padding: const EdgeInsets.all(24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
             children: [
-              _buildDetailRow('Email', ngo['email'] ?? 'N/A'),
-              _buildDetailRow('Phone', ngo['phone'] ?? 'N/A'),
-              _buildDetailRow('Category', ngo['category'] ?? 'N/A'),
-              _buildDetailRow('Location', ngo['location'] ?? 'N/A'),
-              _buildDetailRow('Status', ngo['status'] ?? 'N/A'),
-              _buildDetailRow(
-                  'Created',
-                  ngo['createdAt'] != null
-                      ? (ngo['createdAt'] as Timestamp)
-                          .toDate()
-                          .toString()
-                          .split(' ')[0]
-                      : 'N/A'),
-              if (ngo['description'] != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
+              // Header
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      ngo['organizationName'] ??
+                          ngo['ngoName'] ??
+                          'NGO Details',
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const Divider(),
+
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Description:',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      Text(ngo['description'],
-                          style: Theme.of(context).textTheme.bodyMedium),
+                      // Basic Information Section
+                      _buildDetailsSection(
+                        'Basic Information',
+                        Icons.info,
+                        [
+                          _buildDetailRow(
+                              'Organization Name', ngo['ngoName'] ?? 'N/A'),
+                          _buildDetailRow('Email', ngo['email'] ?? 'N/A'),
+                          _buildDetailRow('Phone', ngo['phone'] ?? 'N/A'),
+                          _buildDetailRow('Website', ngo['website'] ?? 'N/A'),
+                          _buildDetailRow('Sector of Work',
+                              ngo['sectorOfWork']?.join(', ') ?? 'N/A'),
+                          _buildDetailRow(
+                              'Other Sectors', ngo['otherSectors'] ?? 'N/A'),
+                          _buildDetailRow(
+                              'Legal Status', ngo['legalStatus'] ?? 'N/A'),
+                          _buildDetailRow('District', ngo['district'] ?? 'N/A'),
+                          _buildDetailRow('State', ngo['state'] ?? 'N/A'),
+                          _buildDetailRow('Country', ngo['country'] ?? 'N/A'),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Contact Information Section
+                      _buildDetailsSection(
+                        'Contact Information',
+                        Icons.contact_phone,
+                        [
+                          _buildDetailRow('Chief Functionary Name',
+                              ngo['chiefFunctionaryName'] ?? 'N/A'),
+                          _buildDetailRow('Chief Functionary Email',
+                              ngo['chiefFunctionaryEmail'] ?? 'N/A'),
+                          _buildDetailRow('Chief Functionary Phone',
+                              ngo['chiefFunctionaryPhone'] ?? 'N/A'),
+                          _buildDetailRow('Contact Persons',
+                              _formatContactPersons(ngo['contactPersons'])),
+                          _buildDetailRow('Networks', ngo['networks'] ?? 'N/A'),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Legal Information Section
+                      _buildDetailsSection(
+                        'Legal Information',
+                        Icons.gavel,
+                        [
+                          _buildDetailRow('Date of Registration',
+                              ngo['dateOfRegistration'] ?? 'N/A'),
+                          _buildDetailRow('Registration Certificate Number',
+                              ngo['registrationCertNumber'] ?? 'N/A'),
+                          _buildDetailRow('PAN Number', ngo['pan'] ?? 'N/A'),
+                          _buildDetailRow('TAN Number', ngo['tan'] ?? 'N/A'),
+                          _buildDetailRow('GST Registration',
+                              ngo['gstRegistration'] ?? 'N/A'),
+                          _buildDetailRow('FCRA Registration',
+                              ngo['fcraRegistration'] ?? 'N/A'),
+                          _buildDetailRow('CSR Registration',
+                              ngo['csrRegistration'] ?? 'N/A'),
+                          _buildDetailRow(
+                              'DARPAN ID', ngo['darpanId'] ?? 'N/A'),
+                          _buildDetailRow('Professional Tax Registration',
+                              ngo['professionalTaxRegistration'] ?? 'N/A'),
+                          _buildDetailRow(
+                              '12A Certificate', ngo['cert12A'] ?? 'N/A'),
+                          _buildDetailRow(
+                              '80G Certificate', ngo['cert80G'] ?? 'N/A'),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Financial Information Section
+                      _buildDetailsSection(
+                        'Financial Information',
+                        Icons.account_balance,
+                        [
+                          _buildDetailRow(
+                              'Financial Year', ngo['financialYear'] ?? 'N/A'),
+                          _buildDetailRow('Gross Amount Raised',
+                              ngo['grossAmountRaised']?.toString() ?? 'N/A'),
+                          _buildDetailRow('Registered Address',
+                              ngo['registeredAddress'] ?? 'N/A'),
+                          _buildDetailRow('Corresponding Address',
+                              ngo['correspondingAddress'] ?? 'N/A'),
+                          _buildDetailRow('Social Media Presence',
+                              ngo['socialMediaPresence']?.toString() ?? 'N/A'),
+                          _buildDetailRow('Social Media URLs',
+                              _formatSocialMediaUrls(ngo['socialMediaUrls'])),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Status and Timeline Section
+                      _buildDetailsSection(
+                        'Status & Timeline',
+                        Icons.timeline,
+                        [
+                          _buildDetailRow(
+                              'Current Status', ngo['status'] ?? 'N/A'),
+                          _buildDetailRow('Registration Status',
+                              ngo['registrationStatus'] ?? 'N/A'),
+                          _buildDetailRow('Verification Status',
+                              ngo['verificationStatus'] ?? 'N/A'),
+                          _buildDetailRow('Profile Complete',
+                              ngo['profileComplete']?.toString() ?? 'N/A'),
+                          _buildDetailRow(
+                              'Created At', _formatDate(ngo['createdAt'])),
+                          _buildDetailRow(
+                              'Updated At', _formatDate(ngo['updatedAt'])),
+                          _buildDetailRow(
+                              'Last Login', _formatDate(ngo['lastLogin'])),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Description Section
+                      if (ngo['description'] != null)
+                        _buildDetailsSection(
+                          'Description',
+                          Icons.description,
+                          [
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Text(
+                                ngo['description'],
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                      const SizedBox(height: 24),
+
+                      // Documents Section
+                      _buildDocumentsSection(ngo),
+
+                      const SizedBox(height: 24),
+
+                      // Certificates Section
+                      _buildCertificatesSection(ngo),
                     ],
                   ),
                 ),
+              ),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
       ),
     );
   }
@@ -2524,6 +2665,428 @@ class _AdminDashboardState extends State<AdminDashboard>
         ],
       ),
     );
+  }
+
+  Widget _buildDetailsSection(
+      String title, IconData icon, List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryRed.withOpacity(0.1),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: AppTheme.primaryRed),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryRed,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: children,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDocumentsSection(Map<String, dynamic> ngo) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.folder, color: Colors.blue),
+                const SizedBox(width: 8),
+                Text(
+                  'Uploaded Documents',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: _buildDocumentsList(ngo),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDocumentsList(Map<String, dynamic> ngo) {
+    // Get all document fields from the NGO data
+    final documentFields = [
+      'registrationCertificate',
+      'panCard',
+      'tanCard',
+      'gstCertificate',
+      'fcraCertificate',
+      'certificate12A',
+      'certificate80G',
+      'auditReport',
+      'annualReport',
+      'utilizationCertificate',
+      'logo',
+      'proposalDocument',
+    ];
+
+    final documents = <Map<String, dynamic>>[];
+
+    for (final field in documentFields) {
+      if (ngo[field] != null) {
+        if (ngo[field] is Map<String, dynamic>) {
+          // If it's a metadata object
+          documents.add({
+            'name': _getDocumentDisplayName(field),
+            'type': field,
+            'metadata': ngo[field],
+          });
+        } else if (ngo[field] is String) {
+          // If it's a simple string URL
+          documents.add({
+            'name': _getDocumentDisplayName(field),
+            'type': field,
+            'url': ngo[field],
+          });
+        }
+      }
+    }
+
+    if (documents.isEmpty) {
+      return const Center(
+        child: Text('No documents uploaded'),
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: documents.length,
+      itemBuilder: (context, index) {
+        final doc = documents[index];
+        return _buildDocumentItem(doc);
+      },
+    );
+  }
+
+  Widget _buildDocumentItem(Map<String, dynamic> doc) {
+    final metadata = doc['metadata'] as Map<String, dynamic>?;
+    final url = doc['url'] as String?;
+    final downloadUrl = metadata?['download_url'] ?? url;
+    final fileName = metadata?['original_name'] ?? doc['name'];
+    final fileSize = metadata?['file_size'] ?? 0;
+    final uploadedAt = metadata?['uploaded_at'];
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: const Icon(Icons.description, color: Colors.blue),
+        title: Text(
+          doc['name'],
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (fileName != doc['name']) Text('File: $fileName'),
+            if (fileSize > 0) Text('Size: ${_formatFileSize(fileSize)}'),
+            if (uploadedAt != null)
+              Text('Uploaded: ${_formatDate(DateTime.parse(uploadedAt))}'),
+          ],
+        ),
+        trailing: downloadUrl != null
+            ? IconButton(
+                icon: const Icon(Icons.download),
+                onPressed: () =>
+                    _downloadDocument({'name': fileName, 'url': downloadUrl}),
+              )
+            : const Icon(Icons.error, color: Colors.red),
+      ),
+    );
+  }
+
+  Widget _buildCertificatesSection(Map<String, dynamic> ngo) {
+    final status = ngo['status'] ?? 'pending';
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.workspace_premium, color: Colors.green),
+                const SizedBox(width: 8),
+                Text(
+                  'Generate Certificates',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: status == 'approved' || status == 'verified'
+                ? _buildCertificatesList(ngo)
+                : const Center(
+                    child: Text('Certificates can be generated after approval'),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCertificatesList(Map<String, dynamic> ngo) {
+    final ngoName = ngo['ngoName'] ?? 'NGO Name';
+    final ngoAddress = ngo['registeredAddress'] ??
+        ngo['correspondingAddress'] ??
+        'Address not provided';
+    final cfoName = ngo['chiefFunctionaryName'] ?? 'Chief Functionary Name';
+    final logoPath = ngo['logo']?['download_url'] ?? 'images/CPF_Logo.jpg';
+
+    return Column(
+      children: [
+        _buildCertificateItem(
+          'Due Diligence Certificate',
+          'Official due diligence verification certificate',
+          Icons.assignment_turned_in,
+          Colors.red,
+          () => _generateCertificate(
+              'due_diligence', ngoName, ngoAddress, cfoName, logoPath),
+        ),
+        const SizedBox(height: 8),
+        _buildCertificateItem(
+          'Compliance Certificate',
+          'Certificate of regulatory compliance',
+          Icons.verified,
+          Colors.green,
+          () => _generateCertificate(
+              'compliance', ngoName, ngoAddress, cfoName, logoPath),
+        ),
+        const SizedBox(height: 8),
+        _buildCertificateItem(
+          'Letterhead Certificate',
+          'Official letterhead authorization certificate',
+          Icons.description,
+          Colors.blue,
+          () => _generateCertificate(
+              'letterhead', ngoName, ngoAddress, cfoName, logoPath),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCertificateItem(
+    String title,
+    String description,
+    IconData icon,
+    Color color,
+    VoidCallback onGenerate,
+  ) {
+    return Card(
+      child: ListTile(
+        leading: Icon(icon, color: color),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(description),
+        trailing: ElevatedButton.icon(
+          onPressed: onGenerate,
+          icon: const Icon(Icons.add_circle, size: 16),
+          label: const Text('Generate'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: color,
+            foregroundColor: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getDocumentDisplayName(String field) {
+    switch (field) {
+      case 'registrationCertificate':
+        return 'Registration Certificate';
+      case 'panCard':
+        return 'PAN Card';
+      case 'tanCard':
+        return 'TAN Card';
+      case 'gstCertificate':
+        return 'GST Certificate';
+      case 'fcraCertificate':
+        return 'FCRA Certificate';
+      case 'certificate12A':
+        return '12A Certificate';
+      case 'certificate80G':
+        return '80G Certificate';
+      case 'auditReport':
+        return 'Audit Report';
+      case 'annualReport':
+        return 'Annual Report';
+      case 'utilizationCertificate':
+        return 'Utilization Certificate';
+      case 'logo':
+        return 'Organization Logo';
+      case 'proposalDocument':
+        return 'Proposal Document';
+      default:
+        return field.replaceAll(RegExp(r'([A-Z])'), ' \$1').trim();
+    }
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  void _generateCertificate(String type, String ngoName, String ngoAddress,
+      String cfoName, String logoPath) async {
+    try {
+      print('Starting certificate generation: $type');
+      print(
+          'Parameters: NGO=$ngoName, Address=$ngoAddress, CFO=$cfoName, Logo=$logoPath');
+
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Generating certificate...'),
+            ],
+          ),
+        ),
+      );
+
+      final now = DateTime.now();
+      final issueDate = now.subtract(const Duration(days: 30));
+      final expiryDate = now.add(const Duration(days: 335));
+      final certificateId =
+          '${type.toUpperCase()}-${now.millisecondsSinceEpoch.toString().substring(8)}';
+
+      // Generate certificate based on type
+      switch (type) {
+        case 'due_diligence':
+          await CertificateGenerator.generateDueDiligenceCertificate(
+            ngoName: ngoName,
+            ngoAddress: ngoAddress,
+            cfoName: cfoName,
+            logoPath: logoPath,
+            certificateId: certificateId,
+            issueDate: issueDate,
+            expiryDate: expiryDate,
+            context: context,
+          );
+          break;
+        case 'compliance':
+          await CertificateGenerator.generateComplianceCertificate(
+            ngoName: ngoName,
+            ngoAddress: ngoAddress,
+            cfoName: cfoName,
+            logoPath: logoPath,
+            certificateId: certificateId,
+            issueDate: issueDate,
+            expiryDate: expiryDate,
+            context: context,
+          );
+          break;
+        case 'letterhead':
+          await CertificateGenerator.generateLetterheadCertificate(
+            ngoName: ngoName,
+            ngoAddress: ngoAddress,
+            cfoName: cfoName,
+            logoPath: logoPath,
+            certificateId: certificateId,
+            issueDate: issueDate,
+            expiryDate: expiryDate,
+            context: context,
+          );
+          break;
+        default:
+          throw Exception('Unknown certificate type: $type');
+      }
+
+      print('Certificate generation completed successfully');
+
+      // Close loading dialog
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      print('Error generating certificate: $e');
+
+      // Close loading dialog
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error generating certificate: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
   }
 
   void _showReviewDialog(Map<String, dynamic> ngo) {
@@ -3359,14 +3922,6 @@ class _AdminDashboardState extends State<AdminDashboard>
     );
   }
 
-  String _formatDate(dynamic timestamp) {
-    if (timestamp == null) return 'Unknown';
-    if (timestamp is Timestamp) {
-      return timestamp.toDate().toString().split(' ')[0];
-    }
-    return timestamp.toString();
-  }
-
   Future<void> _logout(BuildContext context) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     await authProvider.logout();
@@ -3602,10 +4157,17 @@ class _AdminDashboardState extends State<AdminDashboard>
     }
   }
 
-  void _downloadDocument(Map<String, dynamic> doc) {
+  void _downloadDocument(dynamic doc) {
     // Implement document download
+    String fileName = 'document';
+    if (doc is Map<String, dynamic>) {
+      fileName = doc['originalName'] ?? doc['name'] ?? 'document';
+    } else if (doc is String) {
+      fileName = doc;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Downloading ${doc['originalName']}...')),
+      SnackBar(content: Text('Downloading $fileName...')),
     );
   }
 
@@ -3700,6 +4262,47 @@ class _AdminDashboardState extends State<AdminDashboard>
       print('Error getting all uploaded documents: $e');
       return [];
     }
+  }
+
+  // Helper methods for formatting data
+  String _formatContactPersons(dynamic contactPersons) {
+    if (contactPersons == null) return 'N/A';
+    if (contactPersons is List) {
+      return contactPersons.map((contact) {
+        if (contact is Map<String, dynamic>) {
+          return '${contact['name'] ?? 'Unknown'} (${contact['email'] ?? 'No email'})';
+        }
+        return contact.toString();
+      }).join('\n');
+    }
+    return contactPersons.toString();
+  }
+
+  String _formatSocialMediaUrls(dynamic socialMediaUrls) {
+    if (socialMediaUrls == null) return 'N/A';
+    if (socialMediaUrls is Map<String, dynamic>) {
+      return socialMediaUrls.entries
+          .where((entry) =>
+              entry.value != null && entry.value.toString().isNotEmpty)
+          .map((entry) => '${entry.key}: ${entry.value}')
+          .join('\n');
+    }
+    return socialMediaUrls.toString();
+  }
+
+  String _formatDate(dynamic timestamp) {
+    if (timestamp == null) return 'N/A';
+    if (timestamp is Timestamp) {
+      return timestamp.toDate().toString().split(' ')[0];
+    }
+    if (timestamp is String) {
+      try {
+        return DateTime.parse(timestamp).toString().split(' ')[0];
+      } catch (e) {
+        return timestamp;
+      }
+    }
+    return timestamp.toString();
   }
 }
 
