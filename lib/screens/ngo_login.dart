@@ -49,7 +49,8 @@ class _NGOLoginPageState extends State<NGOLoginPage> {
       String errorMessage;
       switch (e.code) {
         case 'user-not-found':
-          errorMessage = 'No account found with this email. Please register first.';
+          errorMessage =
+              'No account found with this email. Please register first.';
           break;
         case 'wrong-password':
           errorMessage = 'Incorrect password. Please try again.';
@@ -63,7 +64,7 @@ class _NGOLoginPageState extends State<NGOLoginPage> {
         default:
           errorMessage = 'Login failed: ${e.message}';
       }
-      
+
       if (mounted) {
         AppHelpers.showErrorSnackBar(context, errorMessage);
       }
@@ -76,39 +77,6 @@ class _NGOLoginPageState extends State<NGOLoginPage> {
         setState(() {
           _isLoading = false;
         });
-      }
-    }
-  }
-
-  Future<void> _handlePasswordReset() async {
-    if (_emailController.text.trim().isEmpty) {
-      AppHelpers.showErrorSnackBar(context, 'Please enter your email address first');
-      return;
-    }
-
-    try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(
-        email: _emailController.text.trim(),
-      );
-      
-      if (mounted) {
-        AppHelpers.showSuccessSnackBar(context, 'Password reset email sent');
-      }
-    } on FirebaseAuthException catch (e) {
-      String errorMessage;
-      switch (e.code) {
-        case 'user-not-found':
-          errorMessage = 'No account found with this email address.';
-          break;
-        case 'invalid-email':
-          errorMessage = 'Invalid email address format.';
-          break;
-        default:
-          errorMessage = 'Failed to send reset email: ${e.message}';
-      }
-      
-      if (mounted) {
-        AppHelpers.showErrorSnackBar(context, errorMessage);
       }
     }
   }
@@ -136,8 +104,9 @@ class _NGOLoginPageState extends State<NGOLoginPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  SizedBox(height: AppHelpers.getResponsiveSpacing(context, 40)),
-                  
+                  SizedBox(
+                      height: AppHelpers.getResponsiveSpacing(context, 40)),
+
                   // Header with Firebase branding
                   Container(
                     padding: const EdgeInsets.all(24),
@@ -156,22 +125,29 @@ class _NGOLoginPageState extends State<NGOLoginPage> {
                         const SizedBox(height: 16),
                         Text(
                           'Welcome Back',
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            color: AppTheme.surfaceWhite,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineMedium
+                              ?.copyWith(
+                                color: AppTheme.surfaceWhite,
+                                fontWeight: FontWeight.bold,
+                              ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Sign in to your NGO account',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: AppTheme.surfaceWhite.withOpacity(0.9),
-                          ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyLarge
+                              ?.copyWith(
+                                color: AppTheme.surfaceWhite.withOpacity(0.9),
+                              ),
                         ),
                         const SizedBox(height: 12),
                         // Firebase indicator
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
                             color: AppTheme.surfaceWhite.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(12),
@@ -179,14 +155,18 @@ class _NGOLoginPageState extends State<NGOLoginPage> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.security, color: AppTheme.surfaceWhite, size: 16),
+                              const Icon(Icons.security,
+                                  color: AppTheme.surfaceWhite, size: 16),
                               const SizedBox(width: 6),
                               Text(
                                 'Secured by Firebase',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: AppTheme.surfaceWhite,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: AppTheme.surfaceWhite,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                               ),
                             ],
                           ),
@@ -194,9 +174,10 @@ class _NGOLoginPageState extends State<NGOLoginPage> {
                       ],
                     ),
                   ),
-                  
-                  SizedBox(height: AppHelpers.getResponsiveSpacing(context, 40)),
-                  
+
+                  SizedBox(
+                      height: AppHelpers.getResponsiveSpacing(context, 40)),
+
                   // Login Form Card
                   Container(
                     padding: const EdgeInsets.all(24),
@@ -217,9 +198,9 @@ class _NGOLoginPageState extends State<NGOLoginPage> {
                           keyboardType: TextInputType.emailAddress,
                           validator: Validators.validateEmail,
                         ),
-                        
+
                         const SizedBox(height: 20),
-                        
+
                         // Password Field
                         CustomPasswordField(
                           controller: _passwordController,
@@ -227,20 +208,9 @@ class _NGOLoginPageState extends State<NGOLoginPage> {
                           hint: 'Enter your password',
                           validator: Validators.validatePassword,
                         ),
-                        
-                        const SizedBox(height: 16),
-                        
-                        // Forgot Password
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: _isLoading ? null : _handlePasswordReset,
-                            child: const Text('Forgot Password?'),
-                          ),
-                        ),
-                        
+
                         const SizedBox(height: 24),
-                        
+
                         // Login Button with Firebase
                         CustomButton(
                           text: 'Sign In with Firebase',
@@ -249,32 +219,37 @@ class _NGOLoginPageState extends State<NGOLoginPage> {
                           icon: Icons.login,
                           width: double.infinity,
                         ),
-                        
+
                         const SizedBox(height: 24),
-                        
+
                         // Divider
                         Row(
                           children: [
                             const Expanded(child: Divider()),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
                               child: Text(
                                 'Don\'t have an account?',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: AppTheme.textSecondary,
-                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: AppTheme.textSecondary,
+                                    ),
                               ),
                             ),
                             const Expanded(child: Divider()),
                           ],
                         ),
-                        
+
                         const SizedBox(height: 24),
-                        
+
                         // Register Button
                         CustomButton(
                           text: 'Register Your NGO',
-                          onPressed: () => Navigator.pushNamed(context, '/ngo-register'),
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/ngo-register'),
                           icon: Icons.app_registration,
                           isOutlined: true,
                           width: double.infinity,
@@ -282,16 +257,18 @@ class _NGOLoginPageState extends State<NGOLoginPage> {
                       ],
                     ),
                   ),
-                  
-                  SizedBox(height: AppHelpers.getResponsiveSpacing(context, 40)),
-                  
+
+                  SizedBox(
+                      height: AppHelpers.getResponsiveSpacing(context, 40)),
+
                   // Support Information (from wireframe)
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: AppTheme.primaryRed.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.primaryRed.withOpacity(0.2)),
+                      border: Border.all(
+                          color: AppTheme.primaryRed.withOpacity(0.2)),
                     ),
                     child: Column(
                       children: [
@@ -306,10 +283,13 @@ class _NGOLoginPageState extends State<NGOLoginPage> {
                             const SizedBox(width: 8),
                             Text(
                               'Need Help?',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: AppTheme.primaryRed,
-                                fontWeight: FontWeight.w600,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    color: AppTheme.primaryRed,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                             ),
                           ],
                         ),
@@ -320,14 +300,18 @@ class _NGOLoginPageState extends State<NGOLoginPage> {
                           children: [
                             Column(
                               children: [
-                                const Icon(Icons.phone, color: AppTheme.primaryRed, size: 16),
+                                const Icon(Icons.phone,
+                                    color: AppTheme.primaryRed, size: 16),
                                 const SizedBox(height: 4),
                                 Text(
                                   '+91 9871216099',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppTheme.textSecondary,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: AppTheme.textSecondary,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                 ),
                               ],
                             ),
@@ -338,14 +322,18 @@ class _NGOLoginPageState extends State<NGOLoginPage> {
                             ),
                             Column(
                               children: [
-                                const Icon(Icons.email, color: AppTheme.primaryRed, size: 16),
+                                const Icon(Icons.email,
+                                    color: AppTheme.primaryRed, size: 16),
                                 const SizedBox(height: 4),
                                 Text(
                                   'support@cpf.org.in',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppTheme.textSecondary,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: AppTheme.textSecondary,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                 ),
                               ],
                             ),
@@ -354,9 +342,10 @@ class _NGOLoginPageState extends State<NGOLoginPage> {
                       ],
                     ),
                   ),
-                  
-                  SizedBox(height: AppHelpers.getResponsiveSpacing(context, 20)),
-                  
+
+                  SizedBox(
+                      height: AppHelpers.getResponsiveSpacing(context, 20)),
+
                   // Back to Home Button
                   Center(
                     child: TextButton(
@@ -365,7 +354,8 @@ class _NGOLoginPageState extends State<NGOLoginPage> {
                       },
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.symmetric(
-                          horizontal: AppHelpers.getResponsiveSpacing(context, 16),
+                          horizontal:
+                              AppHelpers.getResponsiveSpacing(context, 16),
                           vertical: AppHelpers.getResponsiveSpacing(context, 8),
                         ),
                         minimumSize: Size(
@@ -377,7 +367,8 @@ class _NGOLoginPageState extends State<NGOLoginPage> {
                         'Back to Home',
                         style: TextStyle(
                           color: AppTheme.textSecondary,
-                          fontSize: AppHelpers.getResponsiveFontSize(context, 14),
+                          fontSize:
+                              AppHelpers.getResponsiveFontSize(context, 14),
                         ),
                       ),
                     ),

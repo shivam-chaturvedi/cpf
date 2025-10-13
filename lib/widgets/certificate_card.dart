@@ -37,25 +37,19 @@ class CertificateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveHelper.getResponsiveLayout(
-      context: context,
-      mobile: _buildMobileCard(context),
-      tablet: _buildTabletCard(context),
-      desktop: _buildDesktopCard(context),
-    );
-  }
-
-  Widget _buildMobileCard(BuildContext context) {
+    final isMobile = ResponsiveHelper.isMobile(context);
+    final isTablet = ResponsiveHelper.isTablet(context);
+    
     return Container(
-      margin: const EdgeInsets.all(8),
+      margin: EdgeInsets.all(isMobile ? 8 : 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(isMobile ? 12 : 16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
         border: Border.all(
@@ -63,89 +57,124 @@ class CertificateCard extends StatelessWidget {
           width: 2,
         ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with icon and title
-            Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header
+          Container(
+            padding: EdgeInsets.all(isMobile ? 12 : 16),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.05),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(isMobile ? 10 : 14),
+                topRight: Radius.circular(isMobile ? 10 : 14),
+              ),
+            ),
+            child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: EdgeInsets.all(isMobile ? 8 : 10),
                   decoration: BoxDecoration(
                     color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     icon,
                     color: color,
-                    size: 20,
+                    size: isMobile ? 18 : 22,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
-                        ),
+                    style: TextStyle(
+                      fontSize: isMobile ? 14 : (isTablet ? 16 : 18),
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
+          ),
 
-            const SizedBox(height: 12),
-
-            // Description
-            Text(
-              description,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondary,
-                    height: 1.4,
-                  ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-
-            const SizedBox(height: 16),
-
-            // Certificate details
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(8),
-              ),
+          // Content
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.all(isMobile ? 12 : 16),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildDetailRow('ID:', certificateId, context),
-                  _buildDetailRow('Issue:', _formatDate(issueDate), context),
-                  _buildDetailRow('Expiry:', _formatDate(expiryDate), context),
-                  _buildDetailRow(
-                      'Status:', isExpired ? 'Expired' : 'Active', context,
-                      valueColor: isExpired ? Colors.red : Colors.green),
+                  // Description
+                  Expanded(
+                    child: Text(
+                      description,
+                      style: TextStyle(
+                        fontSize: isMobile ? 12 : 14,
+                        color: AppTheme.textSecondary,
+                        height: 1.4,
+                      ),
+                      maxLines: isMobile ? 3 : 4,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Certificate details
+                  Container(
+                    padding: EdgeInsets.all(isMobile ? 10 : 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildDetailRow('ID:', certificateId, isMobile),
+                        const SizedBox(height: 6),
+                        _buildDetailRow('Issue:', _formatDate(issueDate), isMobile),
+                        const SizedBox(height: 6),
+                        _buildDetailRow('Expiry:', _formatDate(expiryDate), isMobile),
+                        const SizedBox(height: 6),
+                        _buildDetailRow(
+                          'Status:',
+                          isExpired ? 'Expired' : 'Active',
+                          isMobile,
+                          valueColor: isExpired ? Colors.red : Colors.green,
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
+          ),
 
-            const SizedBox(height: 16),
-
-            // Download button
-            Container(
+          // Download button
+          Padding(
+            padding: EdgeInsets.all(isMobile ? 12 : 16),
+            child: SizedBox(
               width: double.infinity,
-              margin: const EdgeInsets.only(top: 8),
               child: ElevatedButton.icon(
                 onPressed: () => _generateCertificate(context),
-                icon: const Icon(Icons.download, size: 16),
-                label: const Text('Download Certificate'),
+                icon: Icon(Icons.download, size: isMobile ? 16 : 18),
+                label: Text(
+                  'Download',
+                  style: TextStyle(
+                    fontSize: isMobile ? 13 : 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: color,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  padding: EdgeInsets.symmetric(
+                    vertical: isMobile ? 12 : 14,
+                    horizontal: isMobile ? 12 : 16,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -154,269 +183,43 @@ class CertificateCard extends StatelessWidget {
                 ),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTabletCard(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
           ),
         ],
-        border: Border.all(
-          color: isExpired ? Colors.red : color,
-          width: 2,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with icon and title
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: color,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
-                        ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Description
-            Text(
-              description,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textSecondary,
-                    height: 1.4,
-                  ),
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-            ),
-
-            const SizedBox(height: 20),
-
-            // Certificate details
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Column(
-                children: [
-                  _buildDetailRow('Certificate ID:', certificateId, context),
-                  _buildDetailRow(
-                      'Issue Date:', _formatDate(issueDate), context),
-                  _buildDetailRow(
-                      'Expiry Date:', _formatDate(expiryDate), context),
-                  _buildDetailRow(
-                      'Status:', isExpired ? 'Expired' : 'Active', context,
-                      valueColor: isExpired ? Colors.red : Colors.green),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Download button
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(top: 8),
-              child: ElevatedButton.icon(
-                onPressed: () => _generateCertificate(context),
-                icon: const Icon(Icons.download, size: 18),
-                label: const Text('Download Certificate'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: color,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 2,
-                  shadowColor: color.withOpacity(0.3),
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
 
-  Widget _buildDesktopCard(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-        border: Border.all(
-          color: isExpired ? Colors.red : color,
-          width: 2,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with icon and title
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: color,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
-                        ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-
-            // Description
-            Text(
-              description,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: AppTheme.textSecondary,
-                    height: 1.5,
-                  ),
-              maxLines: 5,
-              overflow: TextOverflow.ellipsis,
-            ),
-
-            const SizedBox(height: 24),
-
-            // Certificate details
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  _buildDetailRow('Certificate ID:', certificateId, context),
-                  _buildDetailRow(
-                      'Issue Date:', _formatDate(issueDate), context),
-                  _buildDetailRow(
-                      'Expiry Date:', _formatDate(expiryDate), context),
-                  _buildDetailRow(
-                      'Status:', isExpired ? 'Expired' : 'Active', context,
-                      valueColor: isExpired ? Colors.red : Colors.green),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Download button
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(top: 8),
-              child: ElevatedButton.icon(
-                onPressed: () => _generateCertificate(context),
-                icon: const Icon(Icons.download, size: 20),
-                label: const Text('Download Certificate'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: color,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  elevation: 3,
-                  shadowColor: color.withOpacity(0.3),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value, BuildContext context,
-      {Color? valueColor}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
+  Widget _buildDetailRow(String label, String value, bool isMobile, {Color? valueColor}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Flexible(
+          flex: 2,
+          child: Text(
             label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: AppTheme.textSecondary,
-                ),
+            style: TextStyle(
+              fontSize: isMobile ? 11 : 12,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textSecondary,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
-          Text(
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          flex: 3,
+          child: Text(
             value,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: valueColor ?? AppTheme.textPrimary,
-                ),
+            style: TextStyle(
+              fontSize: isMobile ? 11 : 12,
+              fontWeight: FontWeight.bold,
+              color: valueColor ?? AppTheme.textPrimary,
+            ),
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -434,13 +237,18 @@ class CertificateCard extends StatelessWidget {
         context: context,
         barrierDismissible: false,
         builder: (context) => const Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Generating certificate...'),
-            ],
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Generating certificate...'),
+                ],
+              ),
+            ),
           ),
         ),
       );
@@ -495,13 +303,15 @@ class CertificateCard extends StatelessWidget {
       }
 
       // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$title downloaded successfully!'),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$title downloaded successfully!'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     } catch (e) {
       print('Error generating certificate: $e');
       
@@ -511,14 +321,15 @@ class CertificateCard extends StatelessWidget {
       }
 
       // Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error generating certificate: $e'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 5),
-        ),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
     }
   }
-
 }

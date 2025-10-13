@@ -43,7 +43,8 @@ dependencies:
   
   # Video Player
   video_player: ^2.8.2
-  chewie: ^1.7.4
+  wakelock_plus: ^1.2.8
+  package_info_plus: ^8.0.2
 
 dev_dependencies:
   flutter_test:

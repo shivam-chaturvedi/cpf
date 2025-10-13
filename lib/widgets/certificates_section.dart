@@ -70,13 +70,18 @@ class CertificatesSection extends StatelessWidget {
           ResponsiveHelper.getResponsiveLayout(
             context: context,
             mobile: Column(
-              children: _buildCertificates(context),
+              children: _buildCertificates(context)
+                  .map((cert) => Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: cert,
+                      ))
+                  .toList(),
             ),
             tablet: GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 1.3,
+              childAspectRatio: 0.85,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
               children: _buildCertificates(context),
@@ -85,7 +90,7 @@ class CertificatesSection extends StatelessWidget {
               crossAxisCount: 3,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 1.2,
+              childAspectRatio: 0.75,
               crossAxisSpacing: 20,
               mainAxisSpacing: 20,
               children: _buildCertificates(context),
@@ -156,24 +161,24 @@ class CertificatesSection extends StatelessWidget {
         expiryDate: expiryDate,
       ),
 
-      // Expired Certificate Example
-      CertificateCard(
-        title: 'Previous Compliance Certificate',
-        description:
-            'Previous compliance certificate that has expired and needs renewal.',
-        icon: Icons.schedule,
-        color: Colors.orange,
-        ngoName: ngoName,
-        ngoAddress: ngoAddress,
-        cfoName: cfoName,
-        logoPath: logoPath,
-        certificateType: 'compliance',
-        certificateId:
-            'COMP-OLD-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
-        issueDate: now.subtract(const Duration(days: 400)),
-        expiryDate: now.subtract(const Duration(days: 10)),
-        isExpired: true,
-      ),
+      // // Expired Certificate Example
+      // CertificateCard(
+      //   title: 'Previous Compliance Certificate',
+      //   description:
+      //       'Previous compliance certificate that has expired and needs renewal.',
+      //   icon: Icons.schedule,
+      //   color: Colors.orange,
+      //   ngoName: ngoName,
+      //   ngoAddress: ngoAddress,
+      //   cfoName: cfoName,
+      //   logoPath: logoPath,
+      //   certificateType: 'compliance',
+      //   certificateId:
+      //       'COMP-OLD-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
+      //   issueDate: now.subtract(const Duration(days: 400)),
+      //   expiryDate: now.subtract(const Duration(days: 10)),
+      //   isExpired: true,
+      // ),
     ];
   }
 }

@@ -1223,15 +1223,22 @@ class _LandingPageState extends State<LandingPage>
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceWhite.withOpacity(0.1),
+              color: Colors.orange.shade400,
               borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.orange.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: Column(
               children: [
                 Text(
                   'Connect With Us',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.black,
+                        color: Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
                 ),
@@ -1360,7 +1367,7 @@ class _LandingPageState extends State<LandingPage>
           children: [
             Icon(
               icon,
-              color: Colors.black.withOpacity(0.8),
+              color: Colors.white,
               size: 20,
             ),
             const SizedBox(width: 8),
@@ -1370,14 +1377,14 @@ class _LandingPageState extends State<LandingPage>
                 Text(
                   title,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.black,
+                        color: Colors.white,
                         fontWeight: FontWeight.w500,
                       ),
                 ),
                 Text(
                   subtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.black.withOpacity(0.7),
+                        color: Colors.white.withOpacity(0.9),
                       ),
                 ),
               ],
