@@ -78,20 +78,54 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
                         color: AppTheme.textPrimary,
                         fontSize: ResponsiveHelper.getResponsiveFontSize(
                           context,
-                          mobile: 14,
-                          tablet: 16,
-                          desktop: 18,
+                          mobile: 16,
+                          tablet: 20,
+                          desktop: 24,
                         ),
                       ),
-                  overflow: TextOverflow.ellipsis,
+                  overflow: TextOverflow.visible,
                   maxLines: 1,
                 ),
                 // Removed the "Collaborative Philanthropy Foundation" text as requested
               ],
             ),
           ),
+          // Add flexible space before navigation links to push them right
+          if (!ResponsiveHelper.isMobile(context)) const Spacer(flex: 3),
+          // Navigation Links (Desktop/Tablet only)
+          if (!ResponsiveHelper.isMobile(context)) ...[
+            _NavLink(
+              label: 'Home',
+              onTap: () => Navigator.pushNamedAndRemoveUntil(
+                  context, '/', (route) => false),
+              isActive: ModalRoute.of(context)?.settings.name == '/',
+            ),
+            const SizedBox(width: 8),
+            _NavLink(
+              label: 'About Us',
+              onTap: () => Navigator.pushNamed(context, '/about'),
+              isActive: ModalRoute.of(context)?.settings.name == '/about',
+            ),
+            const SizedBox(width: 8),
+            _NavLink(
+              label: 'NPO Registration',
+              onTap: () => Navigator.pushNamed(context, '/ngo-login'),
+              isActive: ModalRoute.of(context)?.settings.name == '/ngo-login',
+            ),
+            const SizedBox(width: 8),
+            _NavLink(
+              label: 'CPF Website',
+              onTap: () => _launchURL(context, 'https://cpfindia.org/'),
+            ),
+            const SizedBox(width: 8),
+            _NavLink(
+              label: 'Contact',
+              onTap: () => Navigator.pushNamed(context, '/contact'),
+              isActive: ModalRoute.of(context)?.settings.name == '/contact',
+            ),
+          ],
           // Empty space for right alignment
-          const Spacer(),
+          const Spacer(flex: 1),
         ],
       ),
       backgroundColor: AppTheme.surfaceWhite,
@@ -846,7 +880,7 @@ class DashboardNavbar extends StatelessWidget implements PreferredSizeWidget {
         Navigator.pushNamed(context, '/contact');
         break;
       case 'website':
-        _launchWebsite(context, 'https://cpfindia.org/');
+        _launchURL(context, 'https://cpfindia.org/');
         break;
 
       // Dashboard actions
@@ -881,23 +915,70 @@ class DashboardNavbar extends StatelessWidget implements PreferredSizeWidget {
     }
   }
 
-  void _launchWebsite(BuildContext context, String url) async {
-    try {
-      final Uri uri = Uri.parse(url);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+}
+
+// Helper widget for navigation links
+class _NavLink extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  final bool isActive;
+
+  const _NavLink({
+    required this.label,
+    required this.onTap,
+    this.isActive = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.yellow : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textPrimary,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                fontSize: ResponsiveHelper.getResponsiveFontSize(
+                  context,
+                  mobile: 14,
+                  tablet: 15,
+                  desktop: 16,
+                ),
+              ),
+        ),
+      ),
+    );
+  }
+}
+
+// Helper function for launching URLs
+Future<void> _launchURL(BuildContext context, String url) async {
+  try {
+    final Uri uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Could not open $url')),
         );
       }
-    } catch (e) {
+    }
+  } catch (e) {
+    if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error opening website: $e')),
       );
     }
   }
-
-  @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
