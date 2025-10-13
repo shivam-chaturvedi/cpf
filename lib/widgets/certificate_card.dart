@@ -17,6 +17,7 @@ class CertificateCard extends StatelessWidget {
   final DateTime issueDate;
   final DateTime expiryDate;
   final bool isExpired;
+  final bool isEnabled;
 
   const CertificateCard({
     super.key,
@@ -33,13 +34,14 @@ class CertificateCard extends StatelessWidget {
     required this.issueDate,
     required this.expiryDate,
     this.isExpired = false,
+    this.isEnabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final isMobile = ResponsiveHelper.isMobile(context);
     final isTablet = ResponsiveHelper.isTablet(context);
-    
+
     return Container(
       margin: EdgeInsets.all(isMobile ? 8 : 12),
       decoration: BoxDecoration(
@@ -135,9 +137,11 @@ class CertificateCard extends StatelessWidget {
                       children: [
                         _buildDetailRow('ID:', certificateId, isMobile),
                         const SizedBox(height: 6),
-                        _buildDetailRow('Issue:', _formatDate(issueDate), isMobile),
+                        _buildDetailRow(
+                            'Issue:', _formatDate(issueDate), isMobile),
                         const SizedBox(height: 6),
-                        _buildDetailRow('Expiry:', _formatDate(expiryDate), isMobile),
+                        _buildDetailRow(
+                            'Expiry:', _formatDate(expiryDate), isMobile),
                         const SizedBox(height: 6),
                         _buildDetailRow(
                           'Status:',
@@ -159,17 +163,25 @@ class CertificateCard extends StatelessWidget {
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => _generateCertificate(context),
-                icon: Icon(Icons.download, size: isMobile ? 16 : 18),
+                onPressed: isEnabled && !isExpired
+                    ? () => _generateCertificate(context)
+                    : null,
+                icon: Icon(
+                  isEnabled ? Icons.download : Icons.lock,
+                  size: isMobile ? 16 : 18,
+                ),
                 label: Text(
-                  'Download',
+                  isEnabled
+                      ? (isExpired ? 'Expired' : 'Download')
+                      : 'Not Enabled',
                   style: TextStyle(
                     fontSize: isMobile ? 13 : 15,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: color,
+                  backgroundColor:
+                      isEnabled && !isExpired ? color : Colors.grey,
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(
                     vertical: isMobile ? 12 : 14,
@@ -179,7 +191,8 @@ class CertificateCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   elevation: 2,
-                  shadowColor: color.withOpacity(0.3),
+                  shadowColor: (isEnabled && !isExpired ? color : Colors.grey)
+                      .withOpacity(0.3),
                 ),
               ),
             ),
@@ -189,7 +202,8 @@ class CertificateCard extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(String label, String value, bool isMobile, {Color? valueColor}) {
+  Widget _buildDetailRow(String label, String value, bool isMobile,
+      {Color? valueColor}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -231,7 +245,7 @@ class CertificateCard extends StatelessWidget {
     try {
       print('Starting certificate generation for: $title');
       print('NGO: $ngoName, Type: $certificateType');
-      
+
       // Show loading dialog
       showDialog(
         context: context,
@@ -296,7 +310,7 @@ class CertificateCard extends StatelessWidget {
       }
 
       print('Certificate generated successfully');
-      
+
       // Close loading dialog
       if (context.mounted) {
         Navigator.of(context).pop();
@@ -314,7 +328,7 @@ class CertificateCard extends StatelessWidget {
       }
     } catch (e) {
       print('Error generating certificate: $e');
-      
+
       // Close loading dialog
       if (context.mounted) {
         Navigator.of(context).pop();

@@ -223,45 +223,104 @@ class NGOProvider with ChangeNotifier {
       _setLoading(true);
       _setError(null);
 
-      Query query = _firestore.collection('ngo_proposals');
+      print('========================================');
+      print('FILTERING NGOs:');
+      print('Status: $status');
+      print('Category: $category');
+      print('Location: $location');
+      print('Search Query: $searchQuery');
+      print('========================================');
 
-      // Apply filters
-      if (status != null && status.isNotEmpty) {
-        query = query.where('status', isEqualTo: status);
-      }
-      if (category != null && category.isNotEmpty) {
-        query = query.where('category', isEqualTo: category);
-      }
-      if (location != null && location.isNotEmpty) {
-        query = query.where('location', isEqualTo: location);
-      }
-      if (startDate != null) {
-        query = query.where('createdAt', isGreaterThanOrEqualTo: startDate);
-      }
-      if (endDate != null) {
-        query = query.where('createdAt', isLessThanOrEqualTo: endDate);
-      }
+      // Fetch all NGOs first to avoid composite index requirements
+      final snapshot = await _firestore
+          .collection('ngo_proposals')
+          .orderBy('createdAt', descending: true)
+          .get();
 
-      final snapshot = await query.orderBy('createdAt', descending: true).get();
       List<Map<String, dynamic>> ngos = snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data();
         data['id'] = doc.id;
         return data;
       }).toList();
 
+      print('Total NGOs fetched: ${ngos.length}');
+
+      // Apply status filter
+      if (status != null && status.isNotEmpty) {
+        ngos = ngos.where((ngo) {
+          final ngoStatus = (ngo['status'] ?? '').toString().toLowerCase();
+          return ngoStatus == status.toLowerCase();
+        }).toList();
+        print('After status filter: ${ngos.length}');
+      }
+
+      // Apply category filter
+      if (category != null && category.isNotEmpty) {
+        ngos = ngos.where((ngo) {
+          final ngoCategory = (ngo['category'] ?? '').toString().toLowerCase();
+          return ngoCategory == category.toLowerCase();
+        }).toList();
+        print('After category filter: ${ngos.length}');
+      }
+
+      // Apply location filter
+      if (location != null && location.isNotEmpty) {
+        ngos = ngos.where((ngo) {
+          final ngoLocation = (ngo['location'] ?? '').toString().toLowerCase();
+          final ngoState = (ngo['state'] ?? '').toString().toLowerCase();
+          final ngoCity = (ngo['city'] ?? '').toString().toLowerCase();
+          final searchLoc = location.toLowerCase();
+          return ngoLocation.contains(searchLoc) ||
+              ngoState.contains(searchLoc) ||
+              ngoCity.contains(searchLoc);
+        }).toList();
+        print('After location filter: ${ngos.length}');
+      }
+
+      // Apply date range filter
+      if (startDate != null || endDate != null) {
+        ngos = ngos.where((ngo) {
+          final createdAt = ngo['createdAt'];
+          if (createdAt == null) return false;
+
+          DateTime? date;
+          if (createdAt is Timestamp) {
+            date = createdAt.toDate();
+          } else if (createdAt is DateTime) {
+            date = createdAt;
+          }
+
+          if (date == null) return false;
+
+          if (startDate != null && date.isBefore(startDate)) return false;
+          if (endDate != null && date.isAfter(endDate)) return false;
+
+          return true;
+        }).toList();
+        print('After date filter: ${ngos.length}');
+      }
+
       // Apply search filter
       if (searchQuery != null && searchQuery.isNotEmpty) {
         ngos = ngos.where((ngo) {
-          final name = ngo['organizationName']?.toString().toLowerCase() ?? '';
-          final email = ngo['email']?.toString().toLowerCase() ?? '';
+          final ngoName = (ngo['ngoName'] ?? '').toString().toLowerCase();
+          final orgName =
+              (ngo['organizationName'] ?? '').toString().toLowerCase();
+          final email = (ngo['email'] ?? '').toString().toLowerCase();
           final query = searchQuery.toLowerCase();
-          return name.contains(query) || email.contains(query);
+          return ngoName.contains(query) ||
+              orgName.contains(query) ||
+              email.contains(query);
         }).toList();
+        print('After search filter: ${ngos.length}');
       }
 
       _setLoading(false);
+      print('Final filtered NGOs: ${ngos.length}');
+      print('========================================');
       return ngos;
     } catch (e) {
+      print('Error fetching filtered NGOs: $e');
       _setError('Failed to fetch filtered NGOs: ${e.toString()}');
       _setLoading(false);
       return [];

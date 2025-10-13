@@ -98,16 +98,38 @@ class CertificateGenerator {
     required DateTime expiryDate,
     required BuildContext context,
   }) async {
+    print('========================================');
+    print('GENERATING CERTIFICATE');
+    print('Type: $templateType');
+    print('NGO Name: $ngoName');
+    print('NGO Address: $ngoAddress');
+    print('CFO Name: $cfoName');
+    print('Logo Path: $logoPath');
+    print('Certificate ID: $certificateId');
+    print('Issue Date: ${_formatDate(issueDate)}');
+    print('Expiry Date: ${_formatDate(expiryDate)}');
+    print('========================================');
+
     final pdf = pw.Document();
 
     // Load logo if available
     pw.ImageProvider? logoProvider;
     if (logoPath.isNotEmpty) {
       try {
+        print('Attempting to load logo from: $logoPath');
         final logoData = await rootBundle.load(logoPath);
         logoProvider = pw.MemoryImage(logoData.buffer.asUint8List());
+        print('Logo loaded successfully');
       } catch (e) {
         print('Error loading logo: $e');
+        print('Using default CPF logo');
+        try {
+          final defaultLogo =
+              await rootBundle.load('assets/images/CPF_Logo.jpg');
+          logoProvider = pw.MemoryImage(defaultLogo.buffer.asUint8List());
+        } catch (e2) {
+          print('Error loading default logo: $e2');
+        }
       }
     }
 
@@ -300,6 +322,11 @@ class CertificateGenerator {
     DateTime issueDate,
     DateTime expiryDate,
   ) {
+    print('Building Compliance Certificate with:');
+    print('NGO Name: $ngoName');
+    print('Address: $ngoAddress');
+    print('CFO: $cfoName');
+    print('Certificate ID: $certificateId');
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,

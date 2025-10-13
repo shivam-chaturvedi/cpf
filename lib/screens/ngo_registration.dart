@@ -141,7 +141,7 @@ class _NGORegistrationPageState extends State<NGORegistrationPage> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundGray,
       appBar: AppBar(
-        title: const Text('NGO Registration'),
+        title: const Text('NPO Registration'),
         backgroundColor: AppTheme.surfaceWhite,
         elevation: 0,
         leading: IconButton(

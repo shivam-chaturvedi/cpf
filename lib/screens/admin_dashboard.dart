@@ -12,7 +12,6 @@ import '../widgets/loading_widget.dart';
 import '../widgets/custom_navbar.dart';
 import '../services/certificate_service.dart';
 import '../services/donor_ngo_service.dart';
-import '../services/certificate_generator.dart';
 import '../providers/firestore_file_service.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -50,7 +49,7 @@ class _AdminDashboardState extends State<AdminDashboard>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 9, vsync: this);
+    _tabController = TabController(length: 8, vsync: this);
     _loadData();
   }
 
@@ -264,18 +263,6 @@ class _AdminDashboardState extends State<AdminDashboard>
                           ),
                         ),
                       ),
-                      Tab(
-                        text: 'Documents',
-                        icon: Icon(
-                          Icons.folder,
-                          size: ResponsiveHelper.getResponsiveFontSize(
-                            context,
-                            mobile: 16,
-                            tablet: 18,
-                            desktop: 20,
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -291,7 +278,6 @@ class _AdminDashboardState extends State<AdminDashboard>
                       _buildAnalyticsTab(),
                       _buildDonorNGOAssignmentTab(),
                       _buildCertificatesTab(),
-                      _buildDocumentsTab(),
                     ],
                   ),
                 ),
@@ -2892,6 +2878,10 @@ class _AdminDashboardState extends State<AdminDashboard>
   }
 
   Widget _buildCertificatesList(Map<String, dynamic> ngo) {
+    // Try to get NGO ID from various possible fields
+    final ngoId =
+        ngo['id'] ?? ngo['uid'] ?? ngo['userId'] ?? ngo['email'] ?? '';
+    print('NGO ID for certificates: $ngoId');
     final ngoName = ngo['ngoName'] ?? 'NGO Name';
     final ngoAddress = ngo['registeredAddress'] ??
         ngo['correspondingAddress'] ??
@@ -2899,47 +2889,58 @@ class _AdminDashboardState extends State<AdminDashboard>
     final cfoName = ngo['chiefFunctionaryName'] ?? 'Chief Functionary Name';
     final logoPath = ngo['logo']?['download_url'] ?? 'images/CPF_Logo.jpg';
 
+    // Check current certificate statuses
+    final dueDiligenceEnabled = ngo['dueDiligenceCertificateEnabled'] ?? false;
+    final complianceEnabled = ngo['complianceCertificateEnabled'] ?? false;
+    final letterheadEnabled = ngo['letterheadCertificateEnabled'] ?? false;
+
     return Column(
       children: [
         _buildCertificateItem(
           'Due Diligence Certificate',
-          'Official due diligence verification certificate',
+          dueDiligenceEnabled
+              ? 'Certificate is enabled - Click to disable'
+              : 'Click to enable certificate for this NGO',
           Icons.assignment_turned_in,
           Colors.red,
-          () => _generateCertificate(
-              'due_diligence', ngoName, ngoAddress, cfoName, logoPath),
+          () => _generateCertificate('due_diligence', ngoName, ngoAddress,
+              cfoName, logoPath, ngoId, dueDiligenceEnabled),
+          isEnabled: dueDiligenceEnabled,
         ),
         const SizedBox(height: 8),
         _buildCertificateItem(
           'Compliance Certificate',
-          'Certificate of regulatory compliance',
+          complianceEnabled
+              ? 'Certificate is enabled - Click to disable'
+              : 'Click to enable certificate for this NGO',
           Icons.verified,
           Colors.green,
-          () => _generateCertificate(
-              'compliance', ngoName, ngoAddress, cfoName, logoPath),
+          () => _generateCertificate('compliance', ngoName, ngoAddress, cfoName,
+              logoPath, ngoId, complianceEnabled),
+          isEnabled: complianceEnabled,
         ),
         const SizedBox(height: 8),
         _buildCertificateItem(
           'Letterhead Certificate',
-          'Official letterhead authorization certificate',
+          letterheadEnabled
+              ? 'Certificate is enabled - Click to disable'
+              : 'Click to enable certificate for this NGO',
           Icons.description,
           Colors.blue,
-          () => _generateCertificate(
-              'letterhead', ngoName, ngoAddress, cfoName, logoPath),
+          () => _generateCertificate('letterhead', ngoName, ngoAddress, cfoName,
+              logoPath, ngoId, letterheadEnabled),
+          isEnabled: letterheadEnabled,
         ),
       ],
     );
   }
 
-  Widget _buildCertificateItem(
-    String title,
-    String description,
-    IconData icon,
-    Color color,
-    VoidCallback onGenerate,
-  ) {
+  Widget _buildCertificateItem(String title, String description, IconData icon,
+      Color color, VoidCallback onGenerate,
+      {bool isEnabled = false}) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
+      color: isEnabled ? Colors.green.shade50 : Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -2947,18 +2948,44 @@ class _AdminDashboardState extends State<AdminDashboard>
           children: [
             Row(
               children: [
-                Icon(icon, color: color, size: 24),
+                Icon(isEnabled ? Icons.check_circle : icon,
+                    color: isEnabled ? Colors.green : color, size: 24),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          if (isEnabled) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                'ENABLED',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -2978,10 +3005,12 @@ class _AdminDashboardState extends State<AdminDashboard>
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: onGenerate,
-                icon: const Icon(Icons.add_circle, size: 18),
-                label: const Text('Generate Certificate'),
+                icon:
+                    Icon(isEnabled ? Icons.block : Icons.add_circle, size: 18),
+                label: Text(
+                    isEnabled ? 'Disable Certificate' : 'Enable Certificate'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: color,
+                  backgroundColor: isEnabled ? Colors.red : color,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
@@ -3033,24 +3062,29 @@ class _AdminDashboardState extends State<AdminDashboard>
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
-  void _generateCertificate(String type, String ngoName, String ngoAddress,
-      String cfoName, String logoPath) async {
+  void _generateCertificate(
+      String type,
+      String ngoName,
+      String ngoAddress,
+      String cfoName,
+      String logoPath,
+      String ngoId,
+      bool currentlyEnabled) async {
     try {
-      print('Starting certificate generation: $type');
-      print(
-          'Parameters: NGO=$ngoName, Address=$ngoAddress, CFO=$cfoName, Logo=$logoPath');
+      final action = currentlyEnabled ? 'Disabling' : 'Enabling';
+      print('$action certificate: $type for NGO: $ngoName (ID: $ngoId)');
 
       // Show loading indicator
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(
+        builder: (context) => Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Generating certificate...'),
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text('${action.toLowerCase()} certificate...'),
             ],
           ),
         ),
@@ -3062,53 +3096,69 @@ class _AdminDashboardState extends State<AdminDashboard>
       final certificateId =
           '${type.toUpperCase()}-${now.millisecondsSinceEpoch.toString().substring(8)}';
 
-      // Generate certificate based on type
+      // Map certificate types to Firebase field names
+      String fieldName;
+      String certificateName;
       switch (type) {
         case 'due_diligence':
-          await CertificateGenerator.generateDueDiligenceCertificate(
-            ngoName: ngoName,
-            ngoAddress: ngoAddress,
-            cfoName: cfoName,
-            logoPath: logoPath,
-            certificateId: certificateId,
-            issueDate: issueDate,
-            expiryDate: expiryDate,
-            context: context,
-          );
+          fieldName = 'dueDiligenceCertificateEnabled';
+          certificateName = 'Due Diligence';
           break;
         case 'compliance':
-          await CertificateGenerator.generateComplianceCertificate(
-            ngoName: ngoName,
-            ngoAddress: ngoAddress,
-            cfoName: cfoName,
-            logoPath: logoPath,
-            certificateId: certificateId,
-            issueDate: issueDate,
-            expiryDate: expiryDate,
-            context: context,
-          );
+          fieldName = 'complianceCertificateEnabled';
+          certificateName = 'Compliance';
           break;
         case 'letterhead':
-          await CertificateGenerator.generateLetterheadCertificate(
-            ngoName: ngoName,
-            ngoAddress: ngoAddress,
-            cfoName: cfoName,
-            logoPath: logoPath,
-            certificateId: certificateId,
-            issueDate: issueDate,
-            expiryDate: expiryDate,
-            context: context,
-          );
+          fieldName = 'letterheadCertificateEnabled';
+          certificateName = 'Letterhead';
           break;
         default:
           throw Exception('Unknown certificate type: $type');
       }
 
-      print('Certificate generation completed successfully');
+      // Toggle certificate status
+      if (currentlyEnabled) {
+        // Disable certificate
+        await FirebaseFirestore.instance
+            .collection('ngo_proposals')
+            .doc(ngoId)
+            .update({
+          fieldName: false,
+          '${fieldName}Data': null,
+        });
+        print('Certificate disabled successfully in Firebase');
+      } else {
+        // Enable certificate
+        await FirebaseFirestore.instance
+            .collection('ngo_proposals')
+            .doc(ngoId)
+            .update({
+          fieldName: true,
+          '${fieldName}Data': {
+            'certificateId': certificateId,
+            'issueDate': issueDate.toIso8601String(),
+            'expiryDate': expiryDate.toIso8601String(),
+            'enabledBy': 'admin',
+            'enabledAt': now.toIso8601String(),
+          }
+        });
+        print('Certificate enabled successfully in Firebase');
+      }
 
       // Close loading dialog
       if (context.mounted) {
         Navigator.of(context).pop();
+      }
+
+      // Show success message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                '$certificateName Certificate ${currentlyEnabled ? 'disabled' : 'enabled'} for $ngoName'),
+            backgroundColor: currentlyEnabled ? Colors.orange : Colors.green,
+          ),
+        );
       }
     } catch (e) {
       print('Error generating certificate: $e');
@@ -3683,16 +3733,6 @@ class _AdminDashboardState extends State<AdminDashboard>
             children: [
               Expanded(
                 child: _buildCertificateTypeCard(
-                  'Registration Certificate',
-                  'Generate registration certificate for approved NGOs',
-                  Icons.assignment_turned_in,
-                  Colors.blue,
-                  () => _showCertificateDialog('registration'),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildCertificateTypeCard(
                   'Compliance Certificate',
                   'Generate compliance certificate for verified NGOs',
                   Icons.verified,
@@ -3700,11 +3740,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                   () => _showCertificateDialog('compliance'),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
+              const SizedBox(width: 16),
               Expanded(
                 child: _buildCertificateTypeCard(
                   'Due Diligence Certificate',
@@ -3714,7 +3750,11 @@ class _AdminDashboardState extends State<AdminDashboard>
                   () => _showCertificateDialog('due_diligence'),
                 ),
               ),
-              const SizedBox(width: 16),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
               Expanded(
                 child: _buildCertificateTypeCard(
                   'Bulk Certificates',
@@ -3724,6 +3764,8 @@ class _AdminDashboardState extends State<AdminDashboard>
                   () => _showBulkCertificateDialog(),
                 ),
               ),
+              const SizedBox(width: 16),
+              Expanded(child: Container()), // Empty space
             ],
           ),
         ],
@@ -3875,14 +3917,18 @@ class _AdminDashboardState extends State<AdminDashboard>
                 itemBuilder: (context, index) {
                   final ngo = ngos[index];
                   return ListTile(
-                    title: Text(ngo['organizationName'] ?? 'Unknown NGO'),
+                    title: Text(ngo['ngoName'] ??
+                        ngo['organizationName'] ??
+                        'Unknown NGO'),
                     subtitle: Text(ngo['email'] ?? 'No email'),
                     onTap: () {
                       Navigator.pop(context);
                       CertificateService.showCertificateDialog(
                         context: context,
                         certificateType: certificateType,
-                        ngoName: ngo['organizationName'] ?? 'Unknown NGO',
+                        ngoName: ngo['ngoName'] ??
+                            ngo['organizationName'] ??
+                            'Unknown NGO',
                         ngoId: ngo['id'] ?? '',
                       );
                     },
@@ -3970,6 +4016,7 @@ class _AdminDashboardState extends State<AdminDashboard>
     }
   }
 
+  // ignore: unused_element
   Widget _buildDocumentsTab() {
     return SingleChildScrollView(
       padding: ResponsiveHelper.getResponsivePadding(context),
@@ -4417,7 +4464,9 @@ class _AssignmentDialogState extends State<_AssignmentDialog> {
                         final isSelected = _selectedNGOs.contains(ngo['id']);
 
                         return CheckboxListTile(
-                          title: Text(ngo['organizationName'] ?? 'Unknown NGO'),
+                          title: Text(ngo['ngoName'] ??
+                              ngo['organizationName'] ??
+                              'Unknown NGO'),
                           subtitle: Text(ngo['email'] ?? 'No email'),
                           value: isSelected,
                           onChanged: (value) {
@@ -4578,7 +4627,9 @@ class _CreateAssignmentDialogState extends State<_CreateAssignmentDialog> {
                         final isSelected = _selectedNGOs.contains(ngo['id']);
 
                         return CheckboxListTile(
-                          title: Text(ngo['organizationName'] ?? 'Unknown NGO'),
+                          title: Text(ngo['ngoName'] ??
+                              ngo['organizationName'] ??
+                              'Unknown NGO'),
                           subtitle: Text(ngo['email'] ?? 'No email'),
                           value: isSelected,
                           onChanged: (value) {

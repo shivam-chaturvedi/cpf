@@ -100,7 +100,7 @@ class _NGODashboardState extends State<NGODashboard>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -407,7 +407,6 @@ class _NGODashboardState extends State<NGODashboard>
             Tab(icon: Icon(Icons.upload_file), text: 'Submit Data'),
             Tab(icon: Icon(Icons.description), text: 'Proposals'),
             Tab(icon: Icon(Icons.workspace_premium), text: 'Certificates'),
-            Tab(icon: Icon(Icons.history), text: 'History'),
           ],
         ),
       ),
@@ -419,7 +418,6 @@ class _NGODashboardState extends State<NGODashboard>
           _buildSubmitDataTab(),
           _buildProposalsTab(),
           _buildCertificatesTab(),
-          _buildHistoryTab(),
         ],
       ),
     );
@@ -619,8 +617,8 @@ class _NGODashboardState extends State<NGODashboard>
                 () => _tabController.animateTo(3),
               ),
               _buildQuickActionCard(
-                'View History',
-                Icons.history,
+                'View Certificates',
+                Icons.workspace_premium,
                 () => _tabController.animateTo(4),
               ),
             ],
@@ -1133,34 +1131,6 @@ class _NGODashboardState extends State<NGODashboard>
     );
   }
 
-  Widget _buildHistoryTab() {
-    return SingleChildScrollView(
-      padding: AppHelpers.getResponsivePadding(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Activity History',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'View your submission history and activity.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondary,
-                ),
-          ),
-          const SizedBox(height: 24),
-
-          // This would contain the history implementation
-          const Text('History implementation coming soon...'),
-        ],
-      ),
-    );
-  }
-
   // UPDATED: Enhanced file upload tile with better metadata display
   Widget _buildFileUploadTile(String label, String documentType,
       {bool enabled = true}) {
@@ -1301,10 +1271,13 @@ class _NGODashboardState extends State<NGODashboard>
         final status = ngoData['status'] ?? 'pending';
 
         // Extract NGO information for certificates
-        final ngoName = ngoData['ngo_name'] ?? 'NGO Name';
-        final ngoAddress = ngoData['address'] ?? 'Address not provided';
-        final cfoName = ngoData['cfo_name'] ?? 'CFO Name';
-        final logoPath = ngoData['logo_path'] ?? 'assets/images/CPF_Logo.jpg';
+        final ngoName = ngoData['ngoName'] ?? 'NGO Name';
+        final ngoAddress = ngoData['registeredAddress'] ??
+            ngoData['correspondingAddress'] ??
+            'Address not provided';
+        final cfoName = ngoData['chiefFunctionaryName'] ?? 'CFO Name';
+        final logoPath =
+            ngoData['logo']?['download_url'] ?? 'images/CPF_Logo.jpg';
 
         return SingleChildScrollView(
           child: Column(
@@ -1397,6 +1370,20 @@ class _NGODashboardState extends State<NGODashboard>
                   ngoAddress: ngoAddress,
                   cfoName: cfoName,
                   logoPath: logoPath,
+                  certificateStatuses: {
+                    'dueDiligenceCertificateEnabled':
+                        ngoData['dueDiligenceCertificateEnabled'] ?? false,
+                    'dueDiligenceCertificateEnabledData':
+                        ngoData['dueDiligenceCertificateEnabledData'],
+                    'complianceCertificateEnabled':
+                        ngoData['complianceCertificateEnabled'] ?? false,
+                    'complianceCertificateEnabledData':
+                        ngoData['complianceCertificateEnabledData'],
+                    'letterheadCertificateEnabled':
+                        ngoData['letterheadCertificateEnabled'] ?? false,
+                    'letterheadCertificateEnabledData':
+                        ngoData['letterheadCertificateEnabledData'],
+                  },
                 )
               else ...[
                 // Pending verification message

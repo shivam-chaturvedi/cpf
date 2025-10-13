@@ -8,6 +8,7 @@ class CertificatesSection extends StatelessWidget {
   final String ngoAddress;
   final String cfoName;
   final String logoPath;
+  final Map<String, dynamic> certificateStatuses;
 
   const CertificatesSection({
     super.key,
@@ -15,6 +16,7 @@ class CertificatesSection extends StatelessWidget {
     required this.ngoAddress,
     required this.cfoName,
     required this.logoPath,
+    required this.certificateStatuses,
   });
 
   @override
@@ -103,82 +105,172 @@ class CertificatesSection extends StatelessWidget {
 
   List<Widget> _buildCertificates(BuildContext context) {
     final now = DateTime.now();
-    final issueDate = now.subtract(const Duration(days: 30));
-    final expiryDate = now.add(const Duration(days: 335));
+    final List<Widget> certificates = [];
 
-    return [
-      // Due Diligence Certificate
-      CertificateCard(
-        title: 'Due Diligence Certificate',
-        description:
-            'Official certificate confirming completion of due diligence process and compliance with transparency standards.',
-        icon: Icons.assignment_turned_in,
-        color: AppTheme.primaryRed,
-        ngoName: ngoName,
-        ngoAddress: ngoAddress,
-        cfoName: cfoName,
-        logoPath: logoPath,
-        certificateType: 'due_diligence',
-        certificateId:
-            'DD-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
-        issueDate: issueDate,
-        expiryDate: expiryDate,
-      ),
+    print('========================================');
+    print('CERTIFICATE STATUSES FROM FIREBASE:');
+    print(
+        'Due Diligence Enabled: ${certificateStatuses['dueDiligenceCertificateEnabled']}');
+    print(
+        'Compliance Enabled: ${certificateStatuses['complianceCertificateEnabled']}');
+    print(
+        'Letterhead Enabled: ${certificateStatuses['letterheadCertificateEnabled']}');
+    print('========================================');
 
-      // Compliance Certificate
-      CertificateCard(
-        title: 'Compliance Certificate',
-        description:
-            'Certificate verifying compliance with all regulatory requirements and operational guidelines.',
-        icon: Icons.verified,
-        color: AppTheme.primaryGreen,
-        ngoName: ngoName,
-        ngoAddress: ngoAddress,
-        cfoName: cfoName,
-        logoPath: logoPath,
-        certificateType: 'compliance',
-        certificateId:
-            'COMP-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
-        issueDate: issueDate,
-        expiryDate: expiryDate,
-      ),
+    // Check if Due Diligence Certificate is enabled
+    final dueDiligenceEnabled =
+        certificateStatuses['dueDiligenceCertificateEnabled'] ?? false;
+    final dueDiligenceData =
+        certificateStatuses['dueDiligenceCertificateEnabledData'];
 
-      // Letterhead Certificate
-      CertificateCard(
-        title: 'Letterhead Certificate',
-        description:
-            'Official letterhead certificate for authorized correspondence and documentation purposes.',
-        icon: Icons.description,
-        color: Colors.blue,
-        ngoName: ngoName,
-        ngoAddress: ngoAddress,
-        cfoName: cfoName,
-        logoPath: logoPath,
-        certificateType: 'letterhead',
-        certificateId:
-            'LH-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
-        issueDate: issueDate,
-        expiryDate: expiryDate,
-      ),
+    if (dueDiligenceEnabled && dueDiligenceData != null) {
+      certificates.add(
+        CertificateCard(
+          title: 'Due Diligence Certificate',
+          description:
+              'Official certificate confirming completion of due diligence process and compliance with transparency standards.',
+          icon: Icons.assignment_turned_in,
+          color: AppTheme.primaryRed,
+          ngoName: ngoName,
+          ngoAddress: ngoAddress,
+          cfoName: cfoName,
+          logoPath: logoPath,
+          certificateType: 'due_diligence',
+          certificateId: dueDiligenceData['certificateId'] ??
+              'DD-${now.millisecondsSinceEpoch}',
+          issueDate: dueDiligenceData['issueDate'] != null
+              ? DateTime.parse(dueDiligenceData['issueDate'])
+              : now.subtract(const Duration(days: 30)),
+          expiryDate: dueDiligenceData['expiryDate'] != null
+              ? DateTime.parse(dueDiligenceData['expiryDate'])
+              : now.add(const Duration(days: 335)),
+          isEnabled: true,
+        ),
+      );
+    } else {
+      // Show disabled card
+      certificates.add(
+        CertificateCard(
+          title: 'Due Diligence Certificate',
+          description:
+              'This certificate has not been enabled by the admin yet.',
+          icon: Icons.lock,
+          color: Colors.grey,
+          ngoName: ngoName,
+          ngoAddress: ngoAddress,
+          cfoName: cfoName,
+          logoPath: logoPath,
+          certificateType: 'due_diligence',
+          certificateId: 'N/A',
+          issueDate: now,
+          expiryDate: now,
+          isEnabled: false,
+        ),
+      );
+    }
 
-      // // Expired Certificate Example
-      // CertificateCard(
-      //   title: 'Previous Compliance Certificate',
-      //   description:
-      //       'Previous compliance certificate that has expired and needs renewal.',
-      //   icon: Icons.schedule,
-      //   color: Colors.orange,
-      //   ngoName: ngoName,
-      //   ngoAddress: ngoAddress,
-      //   cfoName: cfoName,
-      //   logoPath: logoPath,
-      //   certificateType: 'compliance',
-      //   certificateId:
-      //       'COMP-OLD-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
-      //   issueDate: now.subtract(const Duration(days: 400)),
-      //   expiryDate: now.subtract(const Duration(days: 10)),
-      //   isExpired: true,
-      // ),
-    ];
+    // Check if Compliance Certificate is enabled
+    final complianceEnabled =
+        certificateStatuses['complianceCertificateEnabled'] ?? false;
+    final complianceData =
+        certificateStatuses['complianceCertificateEnabledData'];
+
+    if (complianceEnabled && complianceData != null) {
+      certificates.add(
+        CertificateCard(
+          title: 'Compliance Certificate',
+          description:
+              'Certificate verifying compliance with all regulatory requirements and operational guidelines.',
+          icon: Icons.verified,
+          color: AppTheme.primaryGreen,
+          ngoName: ngoName,
+          ngoAddress: ngoAddress,
+          cfoName: cfoName,
+          logoPath: logoPath,
+          certificateType: 'compliance',
+          certificateId: complianceData['certificateId'] ??
+              'COMP-${now.millisecondsSinceEpoch}',
+          issueDate: complianceData['issueDate'] != null
+              ? DateTime.parse(complianceData['issueDate'])
+              : now.subtract(const Duration(days: 30)),
+          expiryDate: complianceData['expiryDate'] != null
+              ? DateTime.parse(complianceData['expiryDate'])
+              : now.add(const Duration(days: 335)),
+          isEnabled: true,
+        ),
+      );
+    } else {
+      certificates.add(
+        CertificateCard(
+          title: 'Compliance Certificate',
+          description:
+              'This certificate has not been enabled by the admin yet.',
+          icon: Icons.lock,
+          color: Colors.grey,
+          ngoName: ngoName,
+          ngoAddress: ngoAddress,
+          cfoName: cfoName,
+          logoPath: logoPath,
+          certificateType: 'compliance',
+          certificateId: 'N/A',
+          issueDate: now,
+          expiryDate: now,
+          isEnabled: false,
+        ),
+      );
+    }
+
+    // Check if Letterhead Certificate is enabled
+    final letterheadEnabled =
+        certificateStatuses['letterheadCertificateEnabled'] ?? false;
+    final letterheadData =
+        certificateStatuses['letterheadCertificateEnabledData'];
+
+    if (letterheadEnabled && letterheadData != null) {
+      certificates.add(
+        CertificateCard(
+          title: 'Letterhead Certificate',
+          description:
+              'Official letterhead certificate for authorized correspondence and documentation purposes.',
+          icon: Icons.description,
+          color: Colors.blue,
+          ngoName: ngoName,
+          ngoAddress: ngoAddress,
+          cfoName: cfoName,
+          logoPath: logoPath,
+          certificateType: 'letterhead',
+          certificateId: letterheadData['certificateId'] ??
+              'LH-${now.millisecondsSinceEpoch}',
+          issueDate: letterheadData['issueDate'] != null
+              ? DateTime.parse(letterheadData['issueDate'])
+              : now.subtract(const Duration(days: 30)),
+          expiryDate: letterheadData['expiryDate'] != null
+              ? DateTime.parse(letterheadData['expiryDate'])
+              : now.add(const Duration(days: 335)),
+          isEnabled: true,
+        ),
+      );
+    } else {
+      certificates.add(
+        CertificateCard(
+          title: 'Letterhead Certificate',
+          description:
+              'This certificate has not been enabled by the admin yet.',
+          icon: Icons.lock,
+          color: Colors.grey,
+          ngoName: ngoName,
+          ngoAddress: ngoAddress,
+          cfoName: cfoName,
+          logoPath: logoPath,
+          certificateType: 'letterhead',
+          certificateId: 'N/A',
+          issueDate: now,
+          expiryDate: now,
+          isEnabled: false,
+        ),
+      );
+    }
+
+    return certificates;
   }
 }

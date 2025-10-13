@@ -10,6 +10,7 @@ import 'package:cpf_portal/widgets/loading_widget.dart';
 import 'package:cpf_portal/widgets/empty_state_widget.dart';
 import 'package:cpf_portal/widgets/custom_navbar.dart';
 import 'package:cpf_portal/services/donor_ngo_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class DonorDashboard extends StatefulWidget {
   const DonorDashboard({super.key});
@@ -79,8 +80,10 @@ class _DonorDashboardState extends State<DonorDashboard>
 
       _approvedNGOs.clear();
       if (donorStatus == 'approved') {
-        // Load assigned NGOs for this donor
+        // Load ONLY assigned NGOs for this donor
+        print('Loading assigned NGOs for donor: ${user.uid}');
         final assignedNGOIds = await DonorNGOService.getAssignedNGOs(user.uid);
+        print('Assigned NGO IDs: $assignedNGOIds');
 
         if (assignedNGOIds.isNotEmpty) {
           for (final ngoId in assignedNGOIds) {
@@ -91,23 +94,15 @@ class _DonorDashboardState extends State<DonorDashboard>
               final data = ngoDoc.data()!;
               data['ngoId'] = ngoId;
               _approvedNGOs.add(data);
+              print(
+                  'Added NGO: ${data['ngoName'] ?? data['organizationName']}');
             }
           }
         } else {
-          // If no assignments, show all approved NGOs (fallback)
-          final ngoSnapshot = await _firestore
-              .collection('ngo_proposals')
-              .where('status', isEqualTo: 'approved')
-              .get();
-
-          for (final doc in ngoSnapshot.docs) {
-            final data = doc.data();
-            data['ngoId'] = doc.id;
-            _approvedNGOs.add(data);
-          }
+          print('No NGOs assigned to this donor');
         }
       }
-      // If donor is not approved, _approvedNGOs remains empty
+      // If donor is not approved or has no assignments, _approvedNGOs remains empty
 
       // Load donations (placeholder for now)
       _donations = [];
@@ -1426,43 +1421,64 @@ class _DonorDashboardState extends State<DonorDashboard>
 
   void _launchWebsite(String url) async {
     try {
-      // In a real app, you would use url_launcher package
-      // await launchUrl(Uri.parse(url));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Opening website: $url')),
-      );
+      final Uri uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not open website: $url')),
+          );
+        }
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not open website: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error opening website: $e')),
+        );
+      }
     }
   }
 
   void _launchEmail(String email) async {
     try {
-      // In a real app, you would use url_launcher package
-      // await launchUrl(Uri.parse('mailto:$email'));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Opening email: $email')),
-      );
+      final Uri uri = Uri.parse('mailto:$email');
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not open email client')),
+          );
+        }
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not open email: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error opening email: $e')),
+        );
+      }
     }
   }
 
   void _launchPhone(String phone) async {
     try {
-      // In a real app, you would use url_launcher package
-      // await launchUrl(Uri.parse('tel:$phone'));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Opening phone: $phone')),
-      );
+      final Uri uri = Uri.parse('tel:$phone');
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not open phone dialer')),
+          );
+        }
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not open phone: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error opening phone: $e')),
+        );
+      }
     }
   }
 
@@ -1535,17 +1551,21 @@ class _DonorDashboardState extends State<DonorDashboard>
                 ),
                 const SizedBox(height: 8),
                 _buildDetailField('Organization Name',
-                    ngo['organizationName'] ?? ngo['ngoName'] ?? 'N/A'),
+                    ngo['ngoName'] ?? ngo['organizationName'] ?? 'N/A'),
                 _buildDetailField('Email', ngo['email'] ?? 'N/A'),
                 _buildDetailField('Phone', ngo['phone'] ?? 'N/A'),
                 _buildDetailField('Website', ngo['website'] ?? 'N/A'),
                 _buildDetailField(
-                    'Registration Number', ngo['registrationNumber'] ?? 'N/A'),
-                _buildDetailField('PAN Number', ngo['panNumber'] ?? 'N/A'),
+                    'Registration Number',
+                    ngo['registrationCertNumber'] ??
+                        ngo['registrationNumber'] ??
+                        'N/A'),
                 _buildDetailField(
-                    '12A Certificate', ngo['certificate12A'] ?? 'N/A'),
-                _buildDetailField(
-                    '80G Certificate', ngo['certificate80G'] ?? 'N/A'),
+                    'PAN Number', ngo['pan'] ?? ngo['panNumber'] ?? 'N/A'),
+                _buildDetailField('12A Certificate',
+                    ngo['cert12A'] ?? ngo['certificate12A'] ?? 'N/A'),
+                _buildDetailField('80G Certificate',
+                    ngo['cert80G'] ?? ngo['certificate80G'] ?? 'N/A'),
 
                 const SizedBox(height: 16),
 
@@ -1564,10 +1584,12 @@ class _DonorDashboardState extends State<DonorDashboard>
                       ),
                 ),
                 const SizedBox(height: 8),
-                _buildDetailField('Address', ngo['address'] ?? 'N/A'),
-                _buildDetailField('City', ngo['city'] ?? 'N/A'),
+                _buildDetailField('Registered Address',
+                    ngo['registeredAddress'] ?? ngo['address'] ?? 'N/A'),
+                _buildDetailField('Corresponding Address',
+                    ngo['correspondingAddress'] ?? 'N/A'),
+                _buildDetailField('District', ngo['district'] ?? 'N/A'),
                 _buildDetailField('State', ngo['state'] ?? 'N/A'),
-                _buildDetailField('Pincode', ngo['pincode'] ?? 'N/A'),
                 _buildDetailField('Country', ngo['country'] ?? 'N/A'),
 
                 const SizedBox(height: 16),
@@ -1638,14 +1660,20 @@ class _DonorDashboardState extends State<DonorDashboard>
                       ),
                 ),
                 const SizedBox(height: 8),
-                _buildDetailField(
-                    'Contact Person Name', ngo['contactPersonName'] ?? 'N/A'),
-                _buildDetailField('Contact Person Designation',
-                    ngo['contactPersonDesignation'] ?? 'N/A'),
-                _buildDetailField(
-                    'Contact Person Email', ngo['contactPersonEmail'] ?? 'N/A'),
-                _buildDetailField(
-                    'Contact Person Phone', ngo['contactPersonPhone'] ?? 'N/A'),
+                _buildDetailField('Chief Functionary Name',
+                    ngo['chiefFunctionaryName'] ?? 'N/A'),
+                _buildDetailField('Chief Functionary Email',
+                    ngo['chiefFunctionaryEmail'] ?? 'N/A'),
+                _buildDetailField('Chief Functionary Phone',
+                    ngo['chiefFunctionaryPhone'] ?? 'N/A'),
+                if (ngo['contactPersons'] != null)
+                  _buildDetailField(
+                      'Contact Persons',
+                      (ngo['contactPersons'] as List?)
+                              ?.map((cp) =>
+                                  '${cp['name']} (${cp['designation']})')
+                              .join(', ') ??
+                          'N/A'),
 
                 const SizedBox(height: 16),
 
@@ -1931,28 +1959,28 @@ class _DonorDashboardState extends State<DonorDashboard>
                     _buildContactItem(
                       Icons.web,
                       'Website',
-                      'www.cpfindia.org',
-                      () => _launchWebsite('https://www.cpfindia.org'),
+                      'cpfindia.org',
+                      () => _launchWebsite('https://cpfindia.org/'),
                     ),
                     const SizedBox(height: 12),
                     _buildContactItem(
                       Icons.email,
                       'Email',
-                      'info@cpfindia.org',
-                      () => _launchEmail('info@cpfindia.org'),
+                      'contact@cpfindia.org',
+                      () => _launchEmail('contact@cpfindia.org'),
                     ),
                     const SizedBox(height: 12),
                     _buildContactItem(
                       Icons.phone,
                       'Phone',
-                      '+91-11-XXXX-XXXX',
-                      () => _launchPhone('+9111XXXXXXXX'),
+                      '+91 9871216099',
+                      () => _launchPhone('+919871216099'),
                     ),
                     const SizedBox(height: 12),
                     _buildContactItem(
                       Icons.location_on,
                       'Address',
-                      '418, 4th Floor, World Trade Centre,\nBarakhamba Road, New Delhi - 110001',
+                      'Plot/Site No.2, First Floor, Sector C (OFC Pocket),\nNelson Mandela Marg, Vasant Kunj, New Delhi - 110070',
                       null,
                     ),
 
@@ -2035,7 +2063,7 @@ class _DonorDashboardState extends State<DonorDashboard>
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _launchWebsite('https://www.cpf.org.in');
+              _launchWebsite('https://cpfindia.org/');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryRed,
