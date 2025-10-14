@@ -1,18 +1,81 @@
-rules_version='2'
+rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+    
+    // Admin collection - Only admins can read/write
+    match /admins/{adminId} {
+      // Allow reading own admin document
+      allow read: if isSignedIn() && request.auth.uid == adminId;
+      // Allow creating first admin (when collection is empty) or if user is already an admin
+      allow create: if isSignedIn();
+      // Only admins can update/delete
+      allow update, delete: if isAdmin();
+    }
+    
+    // NGO proposals collection
+    match /ngo_proposals/{ngoId} {
+      // NGOs can read/write their own data, admins can read/write all
+      allow read: if isOwner(ngoId) || isAdmin();
+      allow create: if isSignedIn();
+      allow update: if isOwner(ngoId) || isAdmin();
+      allow delete: if isAdmin();
+      
+      // Subcollections for yearly_data and proposals
+      match /yearly_data/{yearId} {
+        allow read: if isOwner(ngoId) || isAdmin();
+        allow write: if isOwner(ngoId) || isAdmin();
+      }
+      
+      match /proposals/{proposalId} {
+        allow read: if isOwner(ngoId) || isAdmin();
+        allow write: if isOwner(ngoId) || isAdmin();
+      }
+    }
+    
+    // Donor profiles collection
+    match /donor_profiles/{donorId} {
+      // Donors can read/write their own data, admins can read/write all
+      allow read: if isOwner(donorId) || isAdmin();
+      allow create: if isSignedIn();
+      allow update: if isOwner(donorId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // Donors collection (legacy)
+    match /donors/{donorId} {
+      allow read: if isOwner(donorId) || isAdmin();
+      allow create: if isSignedIn();
+      allow update: if isOwner(donorId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // Users collection (if used)
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isSignedIn();
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // Default deny all other access
     match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2025, 7, 26);
+      allow read, write: if false;
     }
   }
 }
