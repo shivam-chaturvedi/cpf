@@ -91,7 +91,7 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
             ),
           ),
           // Add flexible space before navigation links to push them right
-          if (!ResponsiveHelper.isMobile(context)) const Spacer(flex: 3),
+          if (!ResponsiveHelper.isMobile(context)) const Spacer(flex: 5),
           // Navigation Links (Desktop/Tablet only)
           if (!ResponsiveHelper.isMobile(context)) ...[
             _NavLink(
@@ -124,8 +124,8 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
               isActive: ModalRoute.of(context)?.settings.name == '/contact',
             ),
           ],
-          // Empty space for right alignment
-          const Spacer(flex: 1),
+          // Minimal space on the right
+          if (!ResponsiveHelper.isMobile(context)) const SizedBox(width: 16),
         ],
       ),
       backgroundColor: AppTheme.surfaceWhite,
@@ -393,88 +393,6 @@ class CustomNavbar extends StatelessWidget implements PreferredSizeWidget {
       ),
       const SizedBox(width: 8),
     ];
-  }
-
-  PreferredSizeWidget? _buildLandingPageBottom(BuildContext context) {
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(60),
-      child: Container(
-        color: AppTheme.surfaceWhite,
-        margin: const EdgeInsets.only(left: 20),
-        child: Row(
-          children: [
-            Expanded(
-              child: _buildNavItem(context, 'Home', Icons.home, () {
-                Navigator.pushNamedAndRemoveUntil(
-                    context, '/', (route) => false);
-              }),
-            ),
-            Expanded(
-              child: _buildNavItem(context, 'About Us', Icons.info, () {
-                Navigator.pushNamed(context, '/about');
-              }),
-            ),
-            Expanded(
-              child: _buildNavItem(context, 'CPF Website', Icons.web, () {
-                _launchWebsite(context, 'https://cpfindia.org/');
-              }),
-            ),
-            Expanded(
-              child: _buildNavItem(context, 'OneStage Website', Icons.web, () {
-                _launchWebsite(context, 'https://theonestage.org/');
-              }),
-            ),
-            Expanded(
-              child: _buildNavItem(context, 'Contact', Icons.contact_mail, () {
-                Navigator.pushNamed(context, '/contact');
-              }),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(
-      BuildContext context, String label, IconData icon, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          vertical: ResponsiveHelper.isMobile(context) ? 8 : 12,
-          horizontal: ResponsiveHelper.isMobile(context) ? 4 : 8,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: AppTheme.primaryRed,
-              size: ResponsiveHelper.isMobile(context) ? 16 : 20,
-            ),
-            SizedBox(height: ResponsiveHelper.isMobile(context) ? 2 : 4),
-            Flexible(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: AppTheme.primaryRed,
-                  fontSize: ResponsiveHelper.getResponsiveFontSize(
-                    context,
-                    mobile: 9,
-                    tablet: 10,
-                    desktop: 12,
-                  ),
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   void _handleCombinedMenuSelection(BuildContext context, String value) {

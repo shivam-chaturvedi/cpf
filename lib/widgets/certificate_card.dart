@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cpf_portal/services/certificate_generator.dart';
+import 'package:cpf_portal/services/certificate_api_service.dart';
 import 'package:cpf_portal/util/theme.dart';
 import 'package:cpf_portal/util/responsive.dart';
 
@@ -267,39 +267,30 @@ class CertificateCard extends StatelessWidget {
         ),
       );
 
-      // Generate certificate based on type
+      // Generate certificate using API service
       switch (certificateType) {
         case 'due_diligence':
-          await CertificateGenerator.generateDueDiligenceCertificate(
+          await CertificateApiService.generateDueDiligenceCertificate(
             ngoName: ngoName,
-            ngoAddress: ngoAddress,
-            cfoName: cfoName,
-            logoPath: logoPath,
-            certificateId: certificateId,
             issueDate: issueDate,
             expiryDate: expiryDate,
             context: context,
           );
           break;
         case 'compliance':
-          await CertificateGenerator.generateComplianceCertificate(
+          await CertificateApiService.generateComplianceCertificate(
             ngoName: ngoName,
-            ngoAddress: ngoAddress,
-            cfoName: cfoName,
-            logoPath: logoPath,
-            certificateId: certificateId,
             issueDate: issueDate,
             expiryDate: expiryDate,
             context: context,
           );
           break;
         case 'letterhead':
-          await CertificateGenerator.generateLetterheadCertificate(
+          await CertificateApiService.generateLetterheadCertificate(
             ngoName: ngoName,
             ngoAddress: ngoAddress,
             cfoName: cfoName,
-            logoPath: logoPath,
-            certificateId: certificateId,
+            checkType: 'Compliance Check', // Default check type
             issueDate: issueDate,
             expiryDate: expiryDate,
             context: context,
