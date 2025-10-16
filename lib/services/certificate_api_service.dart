@@ -14,6 +14,7 @@ class CertificateApiService {
     required DateTime issueDate,
     required DateTime expiryDate,
     required BuildContext context,
+    String? logoUrl, // Optional logo URL
   }) async {
     await _generateCertificate(
       endpoint: '/generate/due_diligence',
@@ -22,6 +23,7 @@ class CertificateApiService {
       expiryDate: expiryDate,
       fileName: 'certificate_due_diligence.docx',
       context: context,
+      logoUrl: logoUrl,
     );
   }
 
@@ -31,6 +33,7 @@ class CertificateApiService {
     required DateTime issueDate,
     required DateTime expiryDate,
     required BuildContext context,
+    String? logoUrl, // Optional logo URL
   }) async {
     await _generateCertificate(
       endpoint: '/generate/compliance',
@@ -39,6 +42,7 @@ class CertificateApiService {
       expiryDate: expiryDate,
       fileName: 'certificate_compliance.docx',
       context: context,
+      logoUrl: logoUrl,
     );
   }
 
@@ -72,6 +76,7 @@ class CertificateApiService {
     required DateTime expiryDate,
     required String fileName,
     required BuildContext context,
+    String? logoUrl, // Optional logo URL
   }) async {
     try {
       print('========================================');
@@ -80,6 +85,7 @@ class CertificateApiService {
       print('NGO Name: $ngoName');
       print('Issue Date: ${_formatDate(issueDate)}');
       print('Expiry Date: ${_formatDate(expiryDate)}');
+      print('Logo URL: ${logoUrl ?? "Not provided"}');
       print('========================================');
 
       // Prepare request body
@@ -88,6 +94,20 @@ class CertificateApiService {
         'issue_date': _formatDate(issueDate),
         'exp_date': _formatDate(expiryDate),
       };
+
+      // Add logo_url if provided and valid HTTP/HTTPS URL
+      if (logoUrl != null &&
+          logoUrl.isNotEmpty &&
+          (logoUrl.startsWith('http://') || logoUrl.startsWith('https://'))) {
+        requestBody['logo_url'] = logoUrl;
+        print('✅ Logo URL added to request: $logoUrl');
+      } else {
+        if (logoUrl != null && logoUrl.isNotEmpty) {
+          print('⚠️ Invalid logo URL (not HTTP/HTTPS): $logoUrl');
+        }
+        print(
+            '⚠️ No valid logo URL - certificate will use default placeholder');
+      }
 
       print('Request body: ${jsonEncode(requestBody)}');
 

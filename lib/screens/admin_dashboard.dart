@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../providers/ngo_provider.dart';
 import '../providers/auth_provider.dart';
 import '../util/theme.dart';
@@ -13,6 +15,9 @@ import '../widgets/custom_navbar.dart';
 import '../services/certificate_service.dart';
 import '../services/donor_ngo_service.dart';
 import '../providers/firestore_file_service.dart';
+
+// Conditional import for web
+import 'dart:html' as html if (dart.library.io) 'dart:io';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -2739,73 +2744,563 @@ class _AdminDashboardState extends State<AdminDashboard>
   }
 
   Widget _buildDocumentsList(Map<String, dynamic> ngo) {
-    // Get all document fields from the NGO data
-    final documentFields = [
-      'registrationCertificate',
-      'panCard',
-      'tanCard',
-      'gstCertificate',
-      'fcraCertificate',
-      'certificate12A',
-      'certificate80G',
-      'auditReport',
-      'annualReport',
-      'utilizationCertificate',
-      'logo',
-      'proposalDocument',
-    ];
+    final ngoId = ngo['id'] ?? ngo['uid'] ?? ngo['userId'] ?? '';
 
-    final documents = <Map<String, dynamic>>[];
-
-    for (final field in documentFields) {
-      if (ngo[field] != null) {
-        if (ngo[field] is Map<String, dynamic>) {
-          // If it's a metadata object
-          documents.add({
-            'name': _getDocumentDisplayName(field),
-            'type': field,
-            'metadata': ngo[field],
-          });
-        } else if (ngo[field] is String) {
-          // If it's a simple string URL
-          documents.add({
-            'name': _getDocumentDisplayName(field),
-            'type': field,
-            'url': ngo[field],
-          });
-        }
-      }
-    }
-
-    if (documents.isEmpty) {
+    if (ngoId.isEmpty) {
       return const Center(
-        child: Text('No documents uploaded'),
+        child: Text('Unable to load documents - NGO ID not found'),
       );
     }
 
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: documents.length,
-      itemBuilder: (context, index) {
-        final doc = documents[index];
-        return _buildDocumentItem(doc);
+    return FutureBuilder<Map<String, List<Map<String, dynamic>>>>(
+      future: _fetchAllNGODocuments(ngoId, ngo),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('Error loading documents: ${snapshot.error}'),
+          );
+        }
+
+        final documentsData = snapshot.data ?? {};
+        final profileDocs = documentsData['profile'] ?? [];
+        final uploadedDocs = documentsData['uploaded'] ?? [];
+        final yearlyDocs = documentsData['yearly'] ?? [];
+        final proposalDocs = documentsData['proposals'] ?? [];
+
+        final totalDocs = profileDocs.length +
+            uploadedDocs.length +
+            yearlyDocs.length +
+            proposalDocs.length;
+
+        if (totalDocs == 0) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text('No documents uploaded'),
+            ),
+          );
+        }
+
+        // Count documents with and without URLs
+        int totalWithUrls = 0;
+        int totalWithoutUrls = 0;
+
+        for (final doc in [...profileDocs, ...uploadedDocs]) {
+          final metadata = doc['metadata'] as Map<String, dynamic>?;
+          final url = doc['url'] as String?;
+          String? downloadUrl;
+          if (metadata != null) {
+            downloadUrl = metadata['download_url'] ??
+                metadata['downloadUrl'] ??
+                metadata['url'];
+          }
+          downloadUrl ??= url;
+
+          if (downloadUrl != null && downloadUrl.isNotEmpty) {
+            totalWithUrls++;
+          } else {
+            totalWithoutUrls++;
+          }
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Summary Card
+            if (totalWithUrls > 0 || totalWithoutUrls > 0)
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: totalWithoutUrls > 0
+                      ? Colors.orange.withOpacity(0.1)
+                      : Colors.green.withOpacity(0.1),
+                  border: Border.all(
+                    color: totalWithoutUrls > 0 ? Colors.orange : Colors.green,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      totalWithoutUrls > 0 ? Icons.warning : Icons.check_circle,
+                      color:
+                          totalWithoutUrls > 0 ? Colors.orange : Colors.green,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '✅ $totalWithUrls document(s) ready to download',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (totalWithoutUrls > 0) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              '⚠️ $totalWithoutUrls document(s) missing download URL',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            // Profile Documents
+            if (profileDocs.isNotEmpty) ...[
+              Text(
+                'Profile Documents (${profileDocs.length})',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryRed,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              ...profileDocs.map((doc) => _buildDocumentItem(doc)),
+              const SizedBox(height: 16),
+            ],
+
+            // General Uploaded Documents
+            if (uploadedDocs.isNotEmpty) ...[
+              Text(
+                'Uploaded Documents (${uploadedDocs.length})',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              ...uploadedDocs.map((doc) => _buildDocumentItem(doc)),
+              const SizedBox(height: 16),
+            ],
+
+            // Yearly Data Documents
+            if (yearlyDocs.isNotEmpty) ...[
+              Text(
+                'Yearly Financial Data (${yearlyDocs.length})',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              ...yearlyDocs.map((doc) => _buildYearlyDataItem(doc)),
+              const SizedBox(height: 16),
+            ],
+
+            // Proposal Documents
+            if (proposalDocs.isNotEmpty) ...[
+              Text(
+                'Proposals (${proposalDocs.length})',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              ...proposalDocs.map((doc) => _buildProposalItem(doc)),
+            ],
+          ],
+        );
       },
+    );
+  }
+
+  Future<Map<String, List<Map<String, dynamic>>>> _fetchAllNGODocuments(
+      String ngoId, Map<String, dynamic> ngo) async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+
+      // 1. Profile Documents (from main NGO document)
+      final profileDocs = <Map<String, dynamic>>[];
+
+      // Check if documents are stored in a 'documents' field (new structure)
+      if (ngo['documents'] != null &&
+          ngo['documents'] is Map<String, dynamic>) {
+        final docs = ngo['documents'] as Map<String, dynamic>;
+        docs.forEach((key, value) {
+          if (value != null) {
+            if (value is Map<String, dynamic>) {
+              // Single file structure
+              profileDocs.add({
+                'name': _getDocumentDisplayName(key),
+                'type': key,
+                'metadata': value,
+                'url': value['download_url'] ?? value['downloadUrl'],
+                'category': 'profile',
+              });
+            } else if (value is List) {
+              // Multiple files structure (new)
+              for (var fileData in value) {
+                if (fileData is Map<String, dynamic>) {
+                  profileDocs.add({
+                    'name': _getDocumentDisplayName(key),
+                    'type': key,
+                    'metadata': fileData,
+                    'url': fileData['download_url'] ?? fileData['downloadUrl'],
+                    'category': 'profile',
+                  });
+                }
+              }
+            } else if (value is String) {
+              profileDocs.add({
+                'name': _getDocumentDisplayName(key),
+                'type': key,
+                'url': value,
+                'category': 'profile',
+              });
+            }
+          }
+        });
+      }
+
+      // Also check for documents stored as individual fields (old structure)
+      final documentFields = [
+        'registrationCertificate',
+        'panCard',
+        'tanCard',
+        'gstCertificate',
+        'fcraCertificate',
+        'certificate12A',
+        'certificate80G',
+        'auditReport',
+        'annualReport',
+        'utilizationCertificate',
+        'logo',
+        'proposalDocument',
+      ];
+
+      for (final field in documentFields) {
+        if (ngo[field] != null) {
+          // Skip if already added from documents field
+          if (profileDocs.any((doc) => doc['type'] == field)) {
+            continue;
+          }
+
+          if (ngo[field] is Map<String, dynamic>) {
+            profileDocs.add({
+              'name': _getDocumentDisplayName(field),
+              'type': field,
+              'metadata': ngo[field],
+              'url': ngo[field]['download_url'] ?? ngo[field]['downloadUrl'],
+              'category': 'profile',
+            });
+          } else if (ngo[field] is String) {
+            profileDocs.add({
+              'name': _getDocumentDisplayName(field),
+              'type': field,
+              'url': ngo[field],
+              'category': 'profile',
+            });
+          }
+        }
+      }
+
+      // 2. General Uploaded Documents (from uploaded_documents subcollection)
+      final uploadedDocs = <Map<String, dynamic>>[];
+      final uploadedSnapshot = await firestore
+          .collection('ngo_proposals')
+          .doc(ngoId)
+          .collection('uploaded_documents')
+          .orderBy('uploadedAt', descending: true)
+          .get();
+
+      for (final doc in uploadedSnapshot.docs) {
+        final data = doc.data();
+        uploadedDocs.add({
+          'name':
+              data['originalName'] ?? data['fileName'] ?? 'Unknown Document',
+          'type': data['documentType'] ?? 'general',
+          'metadata': data,
+          'url': data['downloadUrl'] ?? data['download_url'],
+          'category': 'uploaded',
+          'id': doc.id,
+        });
+      }
+
+      // 3. Yearly Data Documents (from yearly_data subcollection)
+      final yearlyDocs = <Map<String, dynamic>>[];
+      final yearlySnapshot = await firestore
+          .collection('ngo_proposals')
+          .doc(ngoId)
+          .collection('yearly_data')
+          .orderBy('submittedAt', descending: true)
+          .get();
+
+      for (final doc in yearlySnapshot.docs) {
+        final data = doc.data();
+        yearlyDocs.add({
+          'financialYear': data['financialYear'],
+          'documents': data['documents'] ?? {},
+          'documentCount': data['documentCount'] ?? 0,
+          'submittedAt': data['submittedAt'],
+          'status': data['status'] ?? 'submitted',
+          'id': doc.id,
+        });
+      }
+
+      // 4. Proposal Documents (from proposals subcollection)
+      final proposalDocs = <Map<String, dynamic>>[];
+      final proposalSnapshot = await firestore
+          .collection('ngo_proposals')
+          .doc(ngoId)
+          .collection('proposals')
+          .orderBy('submittedAt', descending: true)
+          .get();
+
+      for (final doc in proposalSnapshot.docs) {
+        final data = doc.data();
+        proposalDocs.add({
+          'title': data['title'],
+          'description': data['description'],
+          'requestedAmount': data['requestedAmount'],
+          'status': data['status'] ?? 'submitted',
+          'document': data['document'],
+          'submittedAt': data['submittedAt'],
+          'id': doc.id,
+        });
+      }
+
+      return {
+        'profile': profileDocs,
+        'uploaded': uploadedDocs,
+        'yearly': yearlyDocs,
+        'proposals': proposalDocs,
+      };
+    } catch (e) {
+      print('Error fetching NGO documents: $e');
+      return {
+        'profile': [],
+        'uploaded': [],
+        'yearly': [],
+        'proposals': [],
+      };
+    }
+  }
+
+  Widget _buildYearlyDataItem(Map<String, dynamic> yearlyData) {
+    final financialYear = yearlyData['financialYear'] ?? 'Unknown Year';
+    final documentsData = yearlyData['documents'];
+    final documentCount = yearlyData['totalFileCount'] ?? yearlyData['documentCount'] ?? 0;
+    final submittedAt = yearlyData['submittedAt'];
+    final status = yearlyData['status'] ?? 'submitted';
+
+    // Handle both old (Map with single files) and new (Map with List of files) structure
+    Map<String, dynamic> documents = {};
+    if (documentsData is Map<String, dynamic>) {
+      documents = documentsData;
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ExpansionTile(
+        leading: const Icon(Icons.calendar_today, color: Colors.green),
+        title: Text(
+          'Financial Year: $financialYear',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('$documentCount file(s) • Status: $status'),
+            if (submittedAt != null)
+              Text('Submitted: ${_formatDate(submittedAt)}'),
+          ],
+        ),
+        children: [
+          if (documents.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text('No documents found'),
+            )
+          else
+            ...documents.entries.expand((entry) {
+              final docType = entry.key;
+              final value = entry.value;
+
+              // Handle both single file (Map) and multiple files (List)
+              List<Map<String, dynamic>> fileList = [];
+              if (value is Map<String, dynamic>) {
+                // Old structure: single file
+                fileList = [value];
+              } else if (value is List) {
+                // New structure: multiple files
+                fileList = value.map((item) => item as Map<String, dynamic>).toList();
+              }
+
+              // Create a ListTile for each file
+              return fileList.map((docData) {
+                final fileName =
+                    docData['original_name'] ?? docData['filename'] ?? 'Unknown';
+                final downloadUrl = docData['download_url'];
+                final fileSize = docData['file_size'] ?? 0;
+
+                return ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.insert_drive_file, size: 20),
+                  title: Text(_getDocumentDisplayName(docType)),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('File: $fileName'),
+                      if (fileSize > 0)
+                        Text('Size: ${_formatFileSize(fileSize)}'),
+                    ],
+                  ),
+                  trailing: downloadUrl != null
+                      ? IconButton(
+                          icon: const Icon(Icons.download, size: 20),
+                          onPressed: () => _downloadDocument({
+                            'name': fileName,
+                            'url': downloadUrl,
+                          }),
+                        )
+                      : null,
+                );
+              });
+            }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProposalItem(Map<String, dynamic> proposal) {
+    final title = proposal['title'] ?? 'Untitled Proposal';
+    final description = proposal['description'] ?? '';
+    final requestedAmount = proposal['requestedAmount'] ?? 0;
+    final status = proposal['status'] ?? 'submitted';
+    final submittedAt = proposal['submittedAt'];
+    final document = proposal['document'] as Map<String, dynamic>?;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ExpansionTile(
+        leading: Icon(
+          Icons.description,
+          color: status == 'approved' ? Colors.green : Colors.orange,
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Amount: ₹${requestedAmount.toString()} • Status: $status'),
+            if (submittedAt != null)
+              Text('Submitted: ${_formatDate(submittedAt)}'),
+          ],
+        ),
+        children: [
+          if (description.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Description:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(description),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
+          if (document != null)
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.attach_file, size: 20),
+              title: const Text('Proposal Document'),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('File: ${document['original_name'] ?? 'Unknown'}'),
+                  if (document['file_size'] != null)
+                    Text('Size: ${_formatFileSize(document['file_size'])}'),
+                ],
+              ),
+              trailing: document['download_url'] != null
+                  ? IconButton(
+                      icon: const Icon(Icons.download, size: 20),
+                      onPressed: () => _downloadDocument({
+                        'name': document['original_name'] ?? 'proposal.pdf',
+                        'url': document['download_url'],
+                      }),
+                    )
+                  : null,
+            )
+          else
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text('No document attached'),
+            ),
+        ],
+      ),
     );
   }
 
   Widget _buildDocumentItem(Map<String, dynamic> doc) {
     final metadata = doc['metadata'] as Map<String, dynamic>?;
     final url = doc['url'] as String?;
-    final downloadUrl = metadata?['download_url'] ?? url;
-    final fileName = metadata?['original_name'] ?? doc['name'];
-    final fileSize = metadata?['file_size'] ?? 0;
-    final uploadedAt = metadata?['uploaded_at'];
+
+    // Try multiple ways to get the download URL
+    String? downloadUrl;
+    if (metadata != null) {
+      downloadUrl = metadata['download_url'] ??
+          metadata['downloadUrl'] ??
+          metadata['url'];
+    }
+    downloadUrl ??= url;
+
+    // Try multiple ways to get the file name
+    String fileName = doc['name'] ?? 'Unknown Document';
+    if (metadata != null) {
+      fileName = metadata['original_name'] ??
+          metadata['originalName'] ??
+          metadata['fileName'] ??
+          metadata['filename'] ??
+          fileName;
+    }
+
+    final fileSize = metadata?['file_size'] ?? metadata?['fileSize'] ?? 0;
+    final uploadedAt = metadata?['uploaded_at'] ?? metadata?['uploadedAt'];
+
+    // Debug print for documents without URLs
+    if (downloadUrl == null || downloadUrl.isEmpty) {
+      print('⚠️ Document without URL: ${doc['name']}');
+      print('   Metadata: $metadata');
+      print('   URL field: $url');
+    }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: const Icon(Icons.description, color: Colors.blue),
+        leading: Icon(
+          downloadUrl != null && downloadUrl.isNotEmpty
+              ? Icons.description
+              : Icons.error_outline,
+          color: downloadUrl != null && downloadUrl.isNotEmpty
+              ? Colors.blue
+              : Colors.orange,
+        ),
         title: Text(
           doc['name'],
           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -2816,16 +3311,26 @@ class _AdminDashboardState extends State<AdminDashboard>
             if (fileName != doc['name']) Text('File: $fileName'),
             if (fileSize > 0) Text('Size: ${_formatFileSize(fileSize)}'),
             if (uploadedAt != null)
-              Text('Uploaded: ${_formatDate(DateTime.parse(uploadedAt))}'),
+              Text(
+                  'Uploaded: ${_formatDate(uploadedAt is String ? DateTime.parse(uploadedAt) : uploadedAt)}'),
+            if (downloadUrl == null || downloadUrl.isEmpty)
+              const Text(
+                'URL not available',
+                style: TextStyle(color: Colors.red, fontSize: 12),
+              ),
           ],
         ),
-        trailing: downloadUrl != null
+        trailing: downloadUrl != null && downloadUrl.isNotEmpty
             ? IconButton(
                 icon: const Icon(Icons.download),
                 onPressed: () =>
                     _downloadDocument({'name': fileName, 'url': downloadUrl}),
+                tooltip: 'Download $fileName',
               )
-            : const Icon(Icons.error, color: Colors.red),
+            : Tooltip(
+                message: 'Document URL not found',
+                child: const Icon(Icons.error, color: Colors.red),
+              ),
       ),
     );
   }
@@ -3042,17 +3547,39 @@ class _AdminDashboardState extends State<AdminDashboard>
       case 'certificate80G':
         return '80G Certificate';
       case 'auditReport':
+      case 'audit_report':
         return 'Audit Report';
       case 'annualReport':
-        return 'Annual Report';
+      case 'activity_report':
+        return 'Activity Report';
       case 'utilizationCertificate':
+      case 'utilization_certificate':
         return 'Utilization Certificate';
+      case 'itr_acknowledgment':
+        return 'ITR Acknowledgment';
+      case 'annual_return':
+        return 'Annual Return Proof';
+      case 'tan_form_24q':
+        return 'TAN Form 24Q';
+      case 'tan_form_26q':
+        return 'TAN Form 26Q';
+      case 'tan_tds_related':
+        return 'TAN TDS-Related Documents';
       case 'logo':
         return 'Organization Logo';
       case 'proposalDocument':
+      case 'proposal':
         return 'Proposal Document';
       default:
-        return field.replaceAll(RegExp(r'([A-Z])'), ' \$1').trim();
+        return field
+            .replaceAll('_', ' ')
+            .replaceAll(RegExp(r'([A-Z])'), ' \$1')
+            .trim()
+            .split(' ')
+            .map((word) => word.isEmpty
+                ? ''
+                : word[0].toUpperCase() + word.substring(1).toLowerCase())
+            .join(' ');
     }
   }
 
@@ -4244,25 +4771,148 @@ class _AdminDashboardState extends State<AdminDashboard>
     }
   }
 
-  void _downloadDocument(dynamic doc) {
-    // Implement document download
-    String fileName = 'document';
-    if (doc is Map<String, dynamic>) {
-      fileName = doc['originalName'] ?? doc['name'] ?? 'document';
-    } else if (doc is String) {
-      fileName = doc;
-    }
+  Future<void> _downloadDocument(dynamic doc) async {
+    try {
+      String fileName = 'document';
+      String? downloadUrl;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Downloading $fileName...')),
-    );
+      // Extract fileName and URL from doc
+      if (doc is Map<String, dynamic>) {
+        fileName = doc['originalName'] ??
+            doc['original_name'] ??
+            doc['name'] ??
+            doc['fileName'] ??
+            'document.pdf';
+        downloadUrl = doc['url'] ?? doc['downloadUrl'] ?? doc['download_url'];
+      } else if (doc is String) {
+        downloadUrl = doc;
+        fileName = 'document.pdf';
+      }
+
+      if (downloadUrl == null || downloadUrl.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Download URL not available'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Show downloading message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Downloading $fileName...')),
+      );
+
+      if (kIsWeb) {
+        // Web platform - use anchor element to download
+        _downloadFileWeb(downloadUrl, fileName);
+      } else {
+        // Mobile/Desktop - open URL in browser to download
+        await _downloadFileMobile(downloadUrl);
+      }
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Download initiated for $fileName'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error downloading document: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error downloading document: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
-  void _viewDocument(Map<String, dynamic> doc) {
-    // Implement document view
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Opening ${doc['originalName']}...')),
-    );
+  void _downloadFileWeb(String url, String fileName) {
+    try {
+      // Create an anchor element and trigger download
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', fileName)
+        ..setAttribute('target', '_blank')
+        ..style.display = 'none';
+
+      html.document.body?.append(anchor);
+      anchor.click();
+      anchor.remove();
+    } catch (e) {
+      print('Error in web download: $e');
+      // Fallback: Open in new tab
+      html.window.open(url, '_blank');
+    }
+  }
+
+  Future<void> _downloadFileMobile(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+      } else {
+        throw 'Could not launch $url';
+      }
+    } catch (e) {
+      print('Error in mobile download: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _viewDocument(Map<String, dynamic> doc) async {
+    try {
+      String fileName = doc['originalName'] ??
+          doc['original_name'] ??
+          doc['name'] ??
+          doc['fileName'] ??
+          'document';
+      String? viewUrl = doc['url'] ?? doc['downloadUrl'] ?? doc['download_url'];
+
+      if (viewUrl == null || viewUrl.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Document URL not available'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Opening $fileName...')),
+      );
+
+      // Open document in new tab/window
+      final uri = Uri.parse(viewUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+      } else {
+        throw 'Could not open document';
+      }
+    } catch (e) {
+      print('Error viewing document: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error opening document: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<Map<String, dynamic>> _getDocumentStats() async {

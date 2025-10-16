@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cpf_portal/widgets/faq_section.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:cpf_portal/util/helpers.dart';
 import 'package:cpf_portal/util/theme.dart';
@@ -49,9 +50,11 @@ class _BannerImageRotatorState extends State<BannerImageRotator> {
   @override
   Widget build(BuildContext context) {
     return Container(
+      margin: EdgeInsets.all(ResponsiveHelper.isMobile(context) ? 12 : 16),
       height: ResponsiveHelper.getResponsiveImageHeight(context),
       width: double.infinity,
       decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.3),
@@ -60,26 +63,29 @@ class _BannerImageRotatorState extends State<BannerImageRotator> {
           ),
         ],
       ),
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 800),
-        child: Image.asset(
-          _images[_currentIndex],
-          key: ValueKey<String>(_images[_currentIndex]),
-          fit: BoxFit.cover, // Changed from contain to cover for full width
-          width: double.infinity,
-          height: double.infinity,
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              color: AppTheme.primaryRed,
-              child: const Center(
-                child: Icon(
-                  Icons.image,
-                  color: AppTheme.surfaceWhite,
-                  size: 100,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 800),
+          child: Image.asset(
+            _images[_currentIndex],
+            key: ValueKey<String>(_images[_currentIndex]),
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                color: AppTheme.primaryRed,
+                child: const Center(
+                  child: Icon(
+                    Icons.image,
+                    color: AppTheme.surfaceWhite,
+                    size: 100,
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -737,8 +743,7 @@ class _LandingPageState extends State<LandingPage>
                   Icons.phone,
                   'Phone Support',
                   '91 9871216099',
-                  () => AppHelpers.showInfoSnackBar(
-                      context, 'Phone: 91 9871216099'),
+                  () => _launchPhoneNumber('919871216099'),
                 ),
                 if (AppHelpers.isDesktop(context))
                   Container(
@@ -750,8 +755,7 @@ class _LandingPageState extends State<LandingPage>
                   Icons.email,
                   'Email Support',
                   'support@cpfindia.org',
-                  () => AppHelpers.showInfoSnackBar(
-                      context, 'Email: support@cpfindia.org'),
+                  () => _launchEmail('support@cpfindia.org'),
                 ),
               ],
             ),
@@ -1223,11 +1227,11 @@ class _LandingPageState extends State<LandingPage>
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.orange.shade400,
+              color: Colors.yellow.withOpacity(0.3),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.orange.withOpacity(0.3),
+                  color: Colors.yellow.withOpacity(0.3),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -1238,7 +1242,7 @@ class _LandingPageState extends State<LandingPage>
                 Text(
                   'Connect With Us',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.white,
+                        color: Colors.black,
                         fontWeight: FontWeight.bold,
                       ),
                 ),
@@ -1279,7 +1283,7 @@ class _LandingPageState extends State<LandingPage>
             children: [
               Expanded(
                 child: Text(
-                  '© 2024 Collaborative Philanthropy Foundation. All rights reserved.',
+                  '© 2025 Collaborative Philanthropy Foundation. All rights reserved.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.black.withOpacity(0.8),
                       ),
@@ -1290,29 +1294,29 @@ class _LandingPageState extends State<LandingPage>
                 children: [
                   TextButton(
                     onPressed: () =>
-                        AppHelpers.showInfoSnackBar(context, 'Privacy Policy'),
-                    child: Text(
+                        _launchWebUrl('https://cpfindia.org/privacy-policy'),
+                    child: const Text(
                       'Privacy Policy',
                       style: TextStyle(
-                          color: AppTheme.surfaceWhite.withOpacity(0.8)),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => AppHelpers.showInfoSnackBar(
-                        context, 'Terms of Service'),
-                    child: Text(
-                      'Terms of Service',
-                      style: TextStyle(
-                          color: AppTheme.surfaceWhite.withOpacity(0.8)),
+                          color: Colors.black, fontWeight: FontWeight.w500),
                     ),
                   ),
                   TextButton(
                     onPressed: () =>
-                        AppHelpers.showInfoSnackBar(context, 'Cookie Policy'),
-                    child: Text(
+                        _launchWebUrl('https://cpfindia.org/terms-of-service'),
+                    child: const Text(
+                      'Terms of Service',
+                      style: TextStyle(
+                          color: Colors.black, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () =>
+                        _launchWebUrl('https://cpfindia.org/cookie-policy'),
+                    child: const Text(
                       'Cookie Policy',
                       style: TextStyle(
-                          color: AppTheme.surfaceWhite.withOpacity(0.8)),
+                          color: Colors.black, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -1356,9 +1360,66 @@ class _LandingPageState extends State<LandingPage>
     );
   }
 
+  Future<void> _launchPhoneNumber(String phone) async {
+    final Uri phoneUri = Uri(scheme: 'tel', path: phone);
+    try {
+      if (await canLaunchUrl(phoneUri)) {
+        await launchUrl(phoneUri);
+      } else {
+        if (mounted) {
+          AppHelpers.showErrorSnackBar(
+              context, 'Could not launch phone dialer');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        AppHelpers.showErrorSnackBar(context, 'Error: $e');
+      }
+    }
+  }
+
+  Future<void> _launchEmail(String email) async {
+    final Uri emailUri = Uri(
+      scheme: 'mailto',
+      path: email,
+      query: 'subject=Support Request',
+    );
+    try {
+      if (await canLaunchUrl(emailUri)) {
+        await launchUrl(emailUri);
+      } else {
+        if (mounted) {
+          AppHelpers.showErrorSnackBar(
+              context, 'Could not launch email client');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        AppHelpers.showErrorSnackBar(context, 'Error: $e');
+      }
+    }
+  }
+
+  Future<void> _launchWebUrl(String url) async {
+    final Uri uri = Uri.parse(url);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          AppHelpers.showErrorSnackBar(context, 'Could not open URL');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        AppHelpers.showErrorSnackBar(context, 'Error: $e');
+      }
+    }
+  }
+
   Widget _buildFooterLink(String title, String subtitle, IconData icon) {
     return InkWell(
-      onTap: () => AppHelpers.showInfoSnackBar(context, '$title: $subtitle'),
+      onTap: () => _launchWebUrl(subtitle),
       borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -1367,7 +1428,7 @@ class _LandingPageState extends State<LandingPage>
           children: [
             Icon(
               icon,
-              color: Colors.white,
+              color: Colors.black,
               size: 20,
             ),
             const SizedBox(width: 8),
@@ -1377,14 +1438,14 @@ class _LandingPageState extends State<LandingPage>
                 Text(
                   title,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white,
+                        color: Colors.black,
                         fontWeight: FontWeight.w500,
                       ),
                 ),
                 Text(
                   subtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.black.withOpacity(0.8),
                       ),
                 ),
               ],

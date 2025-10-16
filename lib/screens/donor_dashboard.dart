@@ -37,6 +37,7 @@ class _DonorDashboardState extends State<DonorDashboard>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _ngoSearchController.addListener(_filterNGOs);
     _loadDonorData();
   }
 

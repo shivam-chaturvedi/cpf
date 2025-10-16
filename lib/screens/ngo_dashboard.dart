@@ -71,31 +71,24 @@ class _NGODashboardState extends State<NGODashboard>
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // For financial year data submission
+  // For financial year data submission - Generic F.Y. labels
   String? _selectedFinancialYear;
 
   List<String> get _financialYears {
-    final currentYear = DateTime.now().year;
-    final List<String> years = [];
-
-    // Add 5 years back to current year
-    for (int i = 5; i >= 0; i--) {
-      final year = currentYear - i;
-      final nextYear = year + 1;
-      years.add('$year-${nextYear.toString().substring(2)}');
-    }
-
-    return years;
+    return ['F.Y. 1', 'F.Y. 2', 'F.Y. 3'];
   }
 
-  // UPDATED: Store metadata after Supabase upload
-  final Map<String, Map<String, dynamic>?> _yearlyDocuments = {};
+  // UPDATED: Store multiple files per document type (metadata after Supabase upload)
+  final Map<String, List<Map<String, dynamic>>> _yearlyDocuments = {};
 
   // UPDATED: For proposal submission - now stores metadata after upload
   final _proposalTitleController = TextEditingController();
   final _proposalDescriptionController = TextEditingController();
   final _proposalAmountController = TextEditingController();
   Map<String, dynamic>? _proposalDocumentMetadata;
+
+  // Logo upload state
+  Map<String, dynamic>? _logoMetadata;
 
   @override
   void initState() {
@@ -125,12 +118,118 @@ class _NGODashboardState extends State<NGODashboard>
     }
   }
 
-  // UPDATED: Enhanced file picking and upload to Supabase
-  Future<void> _pickFile(String documentType) async {
+  // UPDATED: Enhanced file picking and upload to Supabase - supports multiple files
+  Future<void> _pickFile(String documentType,
+      {bool allowMultiple = false}) async {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+        allowMultiple: allowMultiple,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        // Show upload progress
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            content: Row(
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(width: 16),
+                Text('Uploading ${result.files.length} file(s)...'),
+              ],
+            ),
+          ),
+        );
+
+        try {
+          List<Map<String, dynamic>> uploadedFiles = [];
+
+          for (final file in result.files) {
+            // Validate file
+            if (!FirestoreFileService.validateFile(file)) {
+              continue; // Skip invalid file
+            }
+
+            // Check file size limit based on document type
+            int maxSize = documentType.contains('audit')
+                ? AppConstants.maxAuditFileSize
+                : AppConstants.maxFileSize;
+            if (file.size > maxSize) {
+              continue; // Skip file that's too large
+            }
+
+            // Upload to Supabase
+            final uploadResult = await FirestoreFileService.uploadFile(
+              ngoId: _auth.currentUser!.uid,
+              documentType: documentType,
+              file: file,
+            );
+
+            if (uploadResult != null) {
+              uploadedFiles.add({
+                'filename': uploadResult['filename'],
+                'download_url': uploadResult['download_url'],
+                'file_path': uploadResult['file_path'],
+                'file_size': uploadResult['file_size'],
+                'original_name': file.name,
+                'uploaded_at': DateTime.now().toIso8601String(),
+              });
+            }
+          }
+
+          // Close progress dialog
+          Navigator.pop(context);
+
+          if (uploadedFiles.isNotEmpty) {
+            if (documentType == 'proposal') {
+              setState(() {
+                _proposalDocumentMetadata = uploadedFiles.first;
+              });
+            } else {
+              // For yearly documents - append to existing list
+              setState(() {
+                if (!_yearlyDocuments.containsKey(documentType)) {
+                  _yearlyDocuments[documentType] = [];
+                }
+                _yearlyDocuments[documentType]!.addAll(uploadedFiles);
+              });
+            }
+          }
+        } catch (e) {
+          // Close progress dialog
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+          // Upload failed - continue silently
+        }
+      }
+    } catch (e) {
+      // Error selecting file - continue silently
+    }
+  }
+
+  // Remove a specific file from uploads
+  void _removeFile(String documentType, int index) {
+    setState(() {
+      if (_yearlyDocuments.containsKey(documentType)) {
+        _yearlyDocuments[documentType]!.removeAt(index);
+        if (_yearlyDocuments[documentType]!.isEmpty) {
+          _yearlyDocuments.remove(documentType);
+        }
+      }
+    });
+  }
+
+  // Upload NGO Logo
+  Future<void> _pickAndUploadLogo() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png'],
+        allowMultiple: false,
       );
 
       if (result != null && result.files.isNotEmpty) {
@@ -138,15 +237,16 @@ class _NGODashboardState extends State<NGODashboard>
 
         // Validate file
         if (!FirestoreFileService.validateFile(file)) {
-          return; // Invalid file - continue silently
+          AppHelpers.showErrorSnackBar(
+              context, 'Invalid file format. Please upload JPG or PNG.');
+          return;
         }
 
-        // Check file size limit based on document type
-        int maxSize = documentType.contains('audit')
-            ? AppConstants.maxAuditFileSize
-            : AppConstants.maxFileSize;
-        if (file.size > maxSize) {
-          return; // File too large - continue silently
+        // Check file size (max 5MB for logos)
+        if (file.size > 5 * 1024 * 1024) {
+          AppHelpers.showErrorSnackBar(
+              context, 'Logo file size must be less than 5MB.');
+          return;
         }
 
         // Show upload progress
@@ -158,7 +258,7 @@ class _NGODashboardState extends State<NGODashboard>
               children: [
                 CircularProgressIndicator(),
                 SizedBox(width: 16),
-                Text('Uploading document...'),
+                Text('Uploading logo...'),
               ],
             ),
           ),
@@ -168,48 +268,56 @@ class _NGODashboardState extends State<NGODashboard>
           // Upload to Supabase
           final uploadResult = await FirestoreFileService.uploadFile(
             ngoId: _auth.currentUser!.uid,
-            documentType: documentType,
+            documentType: 'logo',
             file: file,
           );
 
-          // Close progress dialog
-          Navigator.pop(context);
-
           if (uploadResult != null) {
-            if (documentType == 'proposal') {
-              setState(() {
-                _proposalDocumentMetadata = {
-                  'filename': uploadResult['filename'],
-                  'download_url': uploadResult['download_url'],
-                  'file_path': uploadResult['file_path'],
-                  'file_size': uploadResult['file_size'],
-                  'original_name': file.name,
-                  'uploaded_at': DateTime.now().toIso8601String(),
-                };
-              });
-            } else {
-              // For yearly documents - store metadata instead of PlatformFile
-              setState(() {
-                _yearlyDocuments[documentType] = {
-                  'filename': uploadResult['filename'],
-                  'download_url': uploadResult['download_url'],
-                  'file_path': uploadResult['file_path'],
-                  'file_size': uploadResult['file_size'],
-                  'original_name': file.name,
-                  'uploaded_at': DateTime.now().toIso8601String(),
-                };
-              });
+            final logoMetadata = {
+              'filename': uploadResult['filename'],
+              'download_url': uploadResult['download_url'],
+              'file_path': uploadResult['file_path'],
+              'file_size': uploadResult['file_size'],
+              'original_name': file.name,
+              'uploaded_at': DateTime.now().toIso8601String(),
+            };
+
+            // Update Firestore with logo metadata
+            await _firestore
+                .collection('ngo_proposals')
+                .doc(_auth.currentUser!.uid)
+                .update({
+              'logo': logoMetadata,
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+
+            setState(() {
+              _logoMetadata = logoMetadata;
+            });
+
+            // Close progress dialog
+            Navigator.pop(context);
+
+            if (mounted) {
+              AppHelpers.showSuccessSnackBar(
+                  context, 'Logo uploaded successfully!');
             }
-            // File uploaded successfully - no toast message
+          } else {
+            // Close progress dialog
+            Navigator.pop(context);
+            AppHelpers.showErrorSnackBar(
+                context, 'Failed to upload logo. Please try again.');
           }
         } catch (e) {
           // Close progress dialog
-          Navigator.pop(context);
-          // Upload failed - continue silently
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+          AppHelpers.showErrorSnackBar(context, 'Error uploading logo: $e');
         }
       }
     } catch (e) {
-      // Error selecting file - continue silently
+      AppHelpers.showErrorSnackBar(context, 'Error selecting file: $e');
     }
   }
 
@@ -226,7 +334,7 @@ class _NGODashboardState extends State<NGODashboard>
 
       // Check if any documents are uploaded
       if (_yearlyDocuments.isEmpty ||
-          !_yearlyDocuments.values.any((file) => file != null)) {
+          !_yearlyDocuments.values.any((files) => files.isNotEmpty)) {
         AppHelpers.showErrorSnackBar(
             context, 'Please upload at least one document');
         return;
@@ -247,6 +355,12 @@ class _NGODashboardState extends State<NGODashboard>
         ),
       );
 
+      // Calculate total file count
+      int totalFileCount = 0;
+      _yearlyDocuments.forEach((key, files) {
+        totalFileCount += files.length;
+      });
+
       // Save yearly data reference in Firestore with metadata
       await _firestore
           .collection('ngo_proposals')
@@ -256,7 +370,8 @@ class _NGODashboardState extends State<NGODashboard>
           .set({
         'financialYear': _selectedFinancialYear,
         'documents': _yearlyDocuments,
-        'documentCount': _yearlyDocuments.length,
+        'documentCategoryCount': _yearlyDocuments.length,
+        'totalFileCount': totalFileCount,
         'submittedAt': FieldValue.serverTimestamp(),
         'submittedBy': user.email,
         'status': 'submitted',
@@ -471,23 +586,143 @@ class _NGODashboardState extends State<NGODashboard>
   }
 
   Widget _buildWelcomeSection(Map<String, dynamic> ngoData) {
+    // Extract logo URL with debug logging
+    final logoData = ngoData['logo'];
+    print('🖼️ Logo Data Type: ${logoData.runtimeType}');
+    print('🖼️ Logo Data: $logoData');
+
+    String? logoUrl;
+    if (logoData is Map<String, dynamic>) {
+      logoUrl = logoData['download_url'] ??
+          logoData['downloadUrl'] ??
+          logoData['url'];
+      print('🖼️ Logo URL from Map: $logoUrl');
+    } else if (logoData is String) {
+      logoUrl = logoData;
+      print('🖼️ Logo URL from String: $logoUrl');
+    } else {
+      print('🖼️ Logo data is null or unexpected type');
+      print('🖼️ All NGO Data keys: ${ngoData.keys.toList()}');
+
+      // Check if logo is in documents field
+      if (ngoData['documents'] != null && ngoData['documents'] is Map) {
+        final docs = ngoData['documents'] as Map<String, dynamic>;
+        if (docs['logo'] != null) {
+          print('🖼️ Found logo in documents field');
+          final docLogo = docs['logo'];
+          if (docLogo is Map<String, dynamic>) {
+            logoUrl = docLogo['download_url'] ??
+                docLogo['downloadUrl'] ?? 
+                docLogo['url'];
+            print('🖼️ Logo URL from documents: $logoUrl');
+          }
+        }
+      }
+    }
+
     return CustomCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            'Welcome, ${ngoData['ngoName'] ?? 'NGO'}!',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryRed,
+          // Logo Section
+          if (logoUrl != null && logoUrl.isNotEmpty)
+            Container(
+              width: 80,
+              height: 80,
+              margin: const EdgeInsets.only(right: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.borderGray, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.network(
+                  logoUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: AppTheme.backgroundGray,
+                      child: Icon(
+                        Icons.business,
+                        size: 40,
+                        color: AppTheme.primaryRed,
+                      ),
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      color: AppTheme.backgroundGray,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      ),
+                    );
+                  },
                 ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Manage your NGO profile, submit data, and track your progress.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondary,
+              ),
+            )
+          else
+            Container(
+              width: 80,
+              height: 80,
+              margin: const EdgeInsets.only(right: 16),
+              decoration: BoxDecoration(
+                color: AppTheme.backgroundGray,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.borderGray, width: 2),
+              ),
+              child: Icon(
+                Icons.business,
+                size: 40,
+                color: AppTheme.primaryRed,
+              ),
+            ),
+
+          // Text Section
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Welcome, ${ngoData['ngoName'] ?? 'NGO'}!',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryRed,
+                      ),
                 ),
+                const SizedBox(height: 8),
+                Text(
+                  'Manage your NGO profile, submit data, and track your progress.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
+                ),
+                // Debug indicator (temporary)
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    logoUrl != null ? '' : '',
+                    style: const TextStyle(fontSize: 10, color: Colors.blue),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -730,6 +965,39 @@ class _NGODashboardState extends State<NGODashboard>
 
         final ngoData = snapshot.data!.data() as Map<String, dynamic>;
 
+        // Extract logo URL with debug logging
+        final logoData = ngoData['logo'];
+        print('📋 Profile Tab - Logo Data Type: ${logoData.runtimeType}');
+        print('📋 Profile Tab - Logo Data: $logoData');
+
+        String? logoUrl;
+        if (logoData is Map<String, dynamic>) {
+          logoUrl = logoData['download_url'] ??
+              logoData['downloadUrl'] ??
+              logoData['url'];
+          print('📋 Profile Tab - Logo URL from Map: $logoUrl');
+        } else if (logoData is String) {
+          logoUrl = logoData;
+          print('📋 Profile Tab - Logo URL from String: $logoUrl');
+        } else {
+          print('📋 Profile Tab - Logo is null or unexpected type');
+
+          // Check if logo is in documents field
+          if (ngoData['documents'] != null && ngoData['documents'] is Map) {
+            final docs = ngoData['documents'] as Map<String, dynamic>;
+            if (docs['logo'] != null) {
+              print('📋 Profile Tab - Found logo in documents field');
+              final docLogo = docs['logo'];
+              if (docLogo is Map<String, dynamic>) {
+                logoUrl = docLogo['download_url'] ??
+                    docLogo['downloadUrl'] ??
+                    docLogo['url'];
+                print('📋 Profile Tab - Logo URL from documents: $logoUrl');
+              }
+            }
+          }
+        }
+
         return SingleChildScrollView(
           padding: AppHelpers.getResponsivePadding(context),
           child: Column(
@@ -740,6 +1008,121 @@ class _NGODashboardState extends State<NGODashboard>
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
+              ),
+              const SizedBox(height: 24),
+
+              // Logo Upload/Display Section
+              CustomCard(
+                child: Column(
+                  children: [
+                    Text(
+                      'NGO Logo',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryRed,
+                          ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Logo Display
+                    if (logoUrl != null && logoUrl.isNotEmpty)
+                      Center(
+                        child: Container(
+                          width: 150,
+                          height: 150,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                                color: AppTheme.primaryRed, width: 3),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primaryRed.withOpacity(0.2),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(13),
+                            child: Image.network(
+                              logoUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: AppTheme.backgroundGray,
+                                  child: Icon(
+                                    Icons.business,
+                                    size: 60,
+                                    color: AppTheme.primaryRed,
+                                  ),
+                                );
+                              },
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Container(
+                                  color: AppTheme.backgroundGray,
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      value:
+                                          loadingProgress.expectedTotalBytes !=
+                                                  null
+                                              ? loadingProgress
+                                                      .cumulativeBytesLoaded /
+                                                  loadingProgress
+                                                      .expectedTotalBytes!
+                                              : null,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      Center(
+                        child: Container(
+                          width: 150,
+                          height: 150,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: AppTheme.backgroundGray,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                                color: AppTheme.borderGray, width: 2),
+                          ),
+                          child: Icon(
+                            Icons.business,
+                            size: 60,
+                            color: AppTheme.primaryRed,
+                          ),
+                        ),
+                      ),
+
+                    // Upload/Change Logo Button
+                    CustomButton(
+                      text: logoUrl != null && logoUrl.isNotEmpty
+                          ? 'Change Logo'
+                          : 'Upload Logo',
+                      onPressed: _pickAndUploadLogo,
+                      icon: logoUrl != null && logoUrl.isNotEmpty
+                          ? Icons.edit
+                          : Icons.upload_file,
+                      width: double.infinity,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Upload your NGO logo (JPG/PNG, Max 5MB)',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.textSecondary,
+                            fontStyle: FontStyle.italic,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
 
@@ -912,23 +1295,89 @@ class _NGODashboardState extends State<NGODashboard>
                       setState(() => _selectedFinancialYear = value),
                 ),
                 const SizedBox(height: 20),
+
+                // Audit Statements Section (3 years)
                 Text(
-                  'Upload Documents',
+                  'Audit Statements (Upload for 3 Years)',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryRed,
                       ),
                 ),
                 const SizedBox(height: 12),
-                ...[
-                  'audit_report',
-                  'activity_report',
-                  'itr_acknowledgment',
-                  'utilization_certificate',
-                ].map((docType) => _buildFileUploadTile(
-                      _getDocumentLabel(docType),
-                      docType,
-                    )),
+                _buildMultiFileUploadSection(
+                    'audit_report', 'Audit Statements'),
                 const SizedBox(height: 20),
+
+                // Activity Reports
+                Text(
+                  'Activity Reports',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryRed,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                _buildMultiFileUploadSection(
+                    'activity_report', 'Activity Reports'),
+                const SizedBox(height: 20),
+
+                // ITR Acknowledgments
+                Text(
+                  'ITR Acknowledgments',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryRed,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                _buildMultiFileUploadSection(
+                    'itr_acknowledgment', 'ITR Acknowledgments'),
+                const SizedBox(height: 20),
+
+                // Utilization Certificates
+                Text(
+                  'Utilization Certificates',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryRed,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                _buildMultiFileUploadSection(
+                    'utilization_certificate', 'Utilization Certificates'),
+                const SizedBox(height: 20),
+
+                // Annual Return
+                Text(
+                  'Proof of Filing Annual Return',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryRed,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                _buildMultiFileUploadSection(
+                    'annual_return', 'Annual Return Proof'),
+                const SizedBox(height: 20),
+
+                // TAN Receipts Section
+                Text(
+                  'TAN Receipts',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryRed,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                _buildMultiFileUploadSection('tan_form_24q', 'Form 24Q'),
+                const SizedBox(height: 12),
+                _buildMultiFileUploadSection('tan_form_26q', 'Form 26Q'),
+                const SizedBox(height: 12),
+                _buildMultiFileUploadSection(
+                    'tan_tds_related', 'TDS-Related Documents'),
+                const SizedBox(height: 20),
+
                 CustomButton(
                   text: 'Submit Yearly Data',
                   onPressed: _submitYearlyData,
@@ -985,14 +1434,128 @@ class _NGODashboardState extends State<NGODashboard>
     );
   }
 
+  // Widget for multi-file upload section with file list
+  Widget _buildMultiFileUploadSection(String documentType, String label) {
+    final files = _yearlyDocuments[documentType] ?? [];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppTheme.borderGray),
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                ),
+              ),
+              CustomButton(
+                text: 'Add Files',
+                onPressed: () => _pickFile(documentType, allowMultiple: true),
+                icon: Icons.add,
+                isOutlined: true,
+              ),
+            ],
+          ),
+          if (files.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 8),
+            ...files.asMap().entries.map((entry) {
+              final index = entry.key;
+              final file = entry.value;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.backgroundGray,
+                  borderRadius: BorderRadius.circular(8),
+                  border:
+                      Border.all(color: AppTheme.borderGray.withOpacity(0.5)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.insert_drive_file,
+                        size: 20, color: AppTheme.accentGold),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            file['original_name'] ?? 'Unknown file',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'Size: ${_formatFileSize(file['file_size'] ?? 0)}',
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppTheme.textSecondary,
+                                    ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => _removeFile(documentType, index),
+                      tooltip: 'Remove file',
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+            const SizedBox(height: 4),
+            Text(
+              '${files.length} file(s) uploaded',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.green,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ] else ...[
+            const SizedBox(height: 8),
+            Text(
+              'No files uploaded yet. Click "Add Files" to upload.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textSecondary,
+                    fontStyle: FontStyle.italic,
+                  ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildYearlyDataCard(Map<String, dynamic> data) {
+    final totalFiles = data['totalFileCount'] ?? data['documentCount'] ?? 0;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: const Icon(Icons.folder, color: AppTheme.primaryRed),
         title: Text('Financial Year: ${data['financialYear']}'),
-        subtitle:
-            Text('${data['documentCount']} documents • ${data['status']}'),
+        subtitle: Text('$totalFiles file(s) uploaded • ${data['status']}'),
         trailing: Text(
           data['submittedAt']?.toDate().toString().split(' ')[0] ?? '',
           style: Theme.of(context).textTheme.bodySmall,
@@ -1131,7 +1694,7 @@ class _NGODashboardState extends State<NGODashboard>
     );
   }
 
-  // UPDATED: Enhanced file upload tile with better metadata display
+  // UPDATED: Enhanced file upload tile for single file uploads (used for proposals)
   Widget _buildFileUploadTile(String label, String documentType,
       {bool enabled = true}) {
     dynamic file;
@@ -1139,7 +1702,9 @@ class _NGODashboardState extends State<NGODashboard>
     if (documentType == 'proposal') {
       file = _proposalDocumentMetadata;
     } else {
-      file = _yearlyDocuments[documentType];
+      // For yearly documents, get the first file if available
+      final files = _yearlyDocuments[documentType];
+      file = (files != null && files.isNotEmpty) ? files.first : null;
     }
 
     return Container(
@@ -1193,13 +1758,13 @@ class _NGODashboardState extends State<NGODashboard>
                       Text(
                         file is Map<String, dynamic>
                             ? file['original_name'] ?? 'Unknown file'
-                            : (file as PlatformFile).name,
+                            : 'Unknown file',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: AppTheme.accentGold,
                             ),
                       ),
                       Text(
-                        'Size: ${_formatFileSize(file is Map<String, dynamic> ? file['file_size'] ?? 0 : (file as PlatformFile).size)}',
+                        'Size: ${_formatFileSize(file is Map<String, dynamic> ? file['file_size'] ?? 0 : 0)}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: AppTheme.textSecondary,
                             ),
@@ -1218,7 +1783,9 @@ class _NGODashboardState extends State<NGODashboard>
           ),
           CustomButton(
             text: file != null ? 'Change' : 'Upload',
-            onPressed: enabled ? () => _pickFile(documentType) : null,
+            onPressed: enabled
+                ? () => _pickFile(documentType, allowMultiple: false)
+                : null,
             icon: file != null ? Icons.edit : Icons.upload_file,
             isOutlined: true,
           ),
@@ -1237,6 +1804,14 @@ class _NGODashboardState extends State<NGODashboard>
         return 'ITR Acknowledgment';
       case 'utilization_certificate':
         return 'Utilization Certificate';
+      case 'annual_return':
+        return 'Annual Return Proof';
+      case 'tan_form_24q':
+        return 'TAN Form 24Q';
+      case 'tan_form_26q':
+        return 'TAN Form 26Q';
+      case 'tan_tds_related':
+        return 'TAN TDS-Related Documents';
       default:
         return docType.replaceAll('_', ' ').toUpperCase();
     }
@@ -1276,8 +1851,44 @@ class _NGODashboardState extends State<NGODashboard>
             ngoData['correspondingAddress'] ??
             'Address not provided';
         final cfoName = ngoData['chiefFunctionaryName'] ?? 'CFO Name';
-        final logoPath =
-            ngoData['logo']?['download_url'] ?? 'images/CPF_Logo.jpg';
+
+        // Extract logo URL with comprehensive fallback logic
+        String? logoPath;
+        final logoData = ngoData['logo'];
+        if (logoData is Map<String, dynamic>) {
+          logoPath = logoData['download_url'] ??
+              logoData['downloadUrl'] ??
+              logoData['url'];
+        } else if (logoData is String) {
+          logoPath = logoData;
+        }
+
+        // If not found at top level, check documents field
+        if ((logoPath == null || logoPath.isEmpty) &&
+            ngoData['documents'] != null &&
+            ngoData['documents'] is Map) {
+          final docs = ngoData['documents'] as Map<String, dynamic>;
+          if (docs['logo'] != null && docs['logo'] is Map<String, dynamic>) {
+            final docLogo = docs['logo'] as Map<String, dynamic>;
+            logoPath = docLogo['download_url'] ??
+                docLogo['downloadUrl'] ??
+                docLogo['url'];
+          }
+        }
+
+        // Validate logo URL is a proper HTTP/HTTPS URL (not a local asset path)
+        if (logoPath != null &&
+            !logoPath.startsWith('http://') &&
+            !logoPath.startsWith('https://')) {
+          print(
+              '⚠️ Invalid logo URL (not HTTP/HTTPS): $logoPath - setting to null');
+          logoPath = null;
+        }
+
+        // Fallback to default CPF logo if no valid logo found
+        logoPath ??= 'images/CPF_Logo.jpg';
+
+        print('🎫 Certificate Generation - Using Logo URL: $logoPath');
 
         return SingleChildScrollView(
           child: Column(

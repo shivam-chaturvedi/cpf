@@ -268,6 +268,9 @@ class CertificateCard extends StatelessWidget {
       );
 
       // Generate certificate using API service
+      print('🎫 Generating certificate for: $ngoName');
+      print('🎫 Using logo URL: $logoPath');
+
       switch (certificateType) {
         case 'due_diligence':
           await CertificateApiService.generateDueDiligenceCertificate(
@@ -275,6 +278,7 @@ class CertificateCard extends StatelessWidget {
             issueDate: issueDate,
             expiryDate: expiryDate,
             context: context,
+            logoUrl: logoPath, // Pass THIS NGO's unique logo URL from Supabase
           );
           break;
         case 'compliance':
@@ -283,6 +287,7 @@ class CertificateCard extends StatelessWidget {
             issueDate: issueDate,
             expiryDate: expiryDate,
             context: context,
+            logoUrl: logoPath, // Pass THIS NGO's unique logo URL from Supabase
           );
           break;
         case 'letterhead':

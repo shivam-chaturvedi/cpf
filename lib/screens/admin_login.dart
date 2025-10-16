@@ -19,14 +19,11 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _showCreateAdmin = false;
-  final _nameController = TextEditingController();
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _nameController.dispose();
     super.dispose();
   }
 
@@ -51,45 +48,6 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
         AppHelpers.showErrorSnackBar(
           context,
           authProvider.error ?? 'Invalid admin credentials',
-        );
-      }
-    }
-  }
-
-  Future<void> _handleCreateAdmin() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
-    final name = _nameController.text.trim();
-
-    if (name.isEmpty) {
-      AppHelpers.showErrorSnackBar(context, 'Please enter admin name');
-      return;
-    }
-
-    final success = await authProvider.createAdminAccount(
-      email: email,
-      password: password,
-      name: name,
-    );
-
-    if (mounted) {
-      if (success) {
-        AppHelpers.showSuccessSnackBar(
-          context,
-          'Admin account created successfully! You can now login.',
-        );
-        setState(() {
-          _showCreateAdmin = false;
-          _nameController.clear();
-        });
-      } else {
-        AppHelpers.showErrorSnackBar(
-          context,
-          authProvider.error ?? 'Failed to create admin account',
         );
       }
     }
@@ -216,55 +174,18 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                       builder: (context, authProvider, child) {
                         return Column(
                           children: [
-                            // Mode Toggle
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  _showCreateAdmin
-                                      ? 'Create Admin Account'
-                                      : 'Admin Login',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                ),
-                                TextButton.icon(
-                                  onPressed: () {
-                                    setState(() {
-                                      _showCreateAdmin = !_showCreateAdmin;
-                                    });
-                                  },
-                                  icon: Icon(_showCreateAdmin
-                                      ? Icons.login
-                                      : Icons.person_add),
-                                  label: Text(_showCreateAdmin
-                                      ? 'Login'
-                                      : 'Create Admin'),
-                                ),
-                              ],
+                            // Title
+                            Text(
+                              'Admin Login',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                             ),
 
                             const SizedBox(height: 24),
-
-                            // Name Field (only for create admin)
-                            if (_showCreateAdmin) ...[
-                              CustomTextField(
-                                controller: _nameController,
-                                label: 'Admin Name',
-                                hint: 'Enter admin full name',
-                                icon: Icons.person,
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter admin name';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 20),
-                            ],
 
                             // Email Field
                             CustomTextField(
@@ -288,20 +209,14 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
 
                             const SizedBox(height: 24),
 
-                            // Action Button
+                            // Login Button
                             CustomButton(
-                              text: _showCreateAdmin
-                                  ? 'Create Admin Account'
-                                  : 'Login as Admin',
+                              text: 'Login as Admin',
                               onPressed: authProvider.isLoading
                                   ? null
-                                  : (_showCreateAdmin
-                                      ? _handleCreateAdmin
-                                      : _handleAdminLogin),
+                                  : _handleAdminLogin,
                               isLoading: authProvider.isLoading,
-                              icon: _showCreateAdmin
-                                  ? Icons.person_add
-                                  : Icons.admin_panel_settings,
+                              icon: Icons.admin_panel_settings,
                               width: double.infinity,
                               backgroundColor: AppTheme.errorRed,
                             ),
@@ -324,9 +239,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
-                                      _showCreateAdmin
-                                          ? 'Create the first admin account. This should only be done once during initial setup.'
-                                          : 'This is a secure admin area. Unauthorized access is prohibited.',
+                                      'This is a secure admin area. Unauthorized access is prohibited.',
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodySmall

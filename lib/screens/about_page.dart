@@ -292,19 +292,38 @@ class AboutPage extends StatelessWidget {
                       mobile: Column(
                         children: [
                           Container(
-                            width: ResponsiveHelper.isMobile(context) ? 60 : 80,
+                            width:
+                                ResponsiveHelper.isMobile(context) ? 120 : 150,
                             height:
-                                ResponsiveHelper.isMobile(context) ? 60 : 80,
+                                ResponsiveHelper.isMobile(context) ? 120 : 150,
                             decoration: BoxDecoration(
-                              color: AppTheme.primaryRed.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(
-                                  ResponsiveHelper.isMobile(context) ? 30 : 40),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
-                            child: Icon(
-                              Icons.person,
-                              color: AppTheme.primaryRed,
-                              size:
-                                  ResponsiveHelper.isMobile(context) ? 30 : 40,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.asset(
+                                'assets/images/about_us.jpg',
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: AppTheme.primaryRed.withOpacity(0.1),
+                                    child: Icon(
+                                      Icons.person,
+                                      color: AppTheme.primaryRed,
+                                      size: ResponsiveHelper.isMobile(context)
+                                          ? 40
+                                          : 60,
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
                           ),
                           SizedBox(
@@ -312,10 +331,10 @@ class AboutPage extends StatelessWidget {
                                       context) /
                                   2),
                           Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
-                                'Dr. Pratyush Kumar Panda, PhD',
+                                'Dr. Pratyush Kumar Panda',
                                 style: Theme.of(context)
                                     .textTheme
                                     .titleLarge
@@ -359,7 +378,7 @@ class AboutPage extends StatelessWidget {
                                           context) /
                                       2),
                               Text(
-                                'Featured by The Enterprise World as one of the Most Impactful & Visionary Personalities to Look for in 2025. With his forward-thinking approach and dedication, Pratyush continues to steer CPF toward enabling transparency and collaborative philanthropy across India.',
+                                'With over two decades of leadership experience at esteemed organizations like LTIMindtree, ACC, and CARE, Pratyush is a seasoned professional in ESG, CSR, and public policy. He has catalyzed change across a variety of thematic areas, with a special focus on climate action. An ardent advocate for philanthropy, Pratyush is an ASPIRE Circle Fellow and the 88th philanthropist to join the LivingMyPromise movement in India, committing 50% of his wealth to environmental and social causes. He also serves on national committees with CII, BCCI, ICSI, and the Net Zero Coalition in India. Pratyush holds a Ph.D. in Public Policy and Administration and is a distinguished alumnus of XIMB, with a Master\'s in Sociology and an MBA in Rural Management. In 2024, he has been recognized as a LinkedIn Top Voice for Corporate Sustainability and CSR. On a personal note, he is also a passionate marathon runner.',
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodyMedium
@@ -383,19 +402,34 @@ class AboutPage extends StatelessWidget {
                       tablet: Row(
                         children: [
                           Container(
-                            width: ResponsiveHelper.isMobile(context) ? 60 : 80,
-                            height:
-                                ResponsiveHelper.isMobile(context) ? 60 : 80,
+                            width: 150,
+                            height: 150,
                             decoration: BoxDecoration(
-                              color: AppTheme.primaryRed.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(
-                                  ResponsiveHelper.isMobile(context) ? 30 : 40),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
-                            child: Icon(
-                              Icons.person,
-                              color: AppTheme.primaryRed,
-                              size:
-                                  ResponsiveHelper.isMobile(context) ? 30 : 40,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.asset(
+                                'assets/images/about_us.jpg',
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: AppTheme.primaryRed.withOpacity(0.1),
+                                    child: const Icon(
+                                      Icons.person,
+                                      color: AppTheme.primaryRed,
+                                      size: 60,
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
                           ),
                           SizedBox(
@@ -406,7 +440,7 @@ class AboutPage extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Dr. Pratyush Kumar Panda, PhD',
+                                  'Dr. Pratyush Kumar Panda',
                                   style: Theme.of(context)
                                       .textTheme
                                       .titleLarge
@@ -450,7 +484,7 @@ class AboutPage extends StatelessWidget {
                                                 context) /
                                             2),
                                 Text(
-                                  'Featured by The Enterprise World as one of the Most Impactful & Visionary Personalities to Look for in 2025. With his forward-thinking approach and dedication, Pratyush continues to steer CPF toward enabling transparency and collaborative philanthropy across India.',
+                                  'With over two decades of leadership experience at esteemed organizations like LTIMindtree, ACC, and CARE, Pratyush is a seasoned professional in ESG, CSR, and public policy. He has catalyzed change across a variety of thematic areas, with a special focus on climate action. An ardent advocate for philanthropy, Pratyush is an ASPIRE Circle Fellow and the 88th philanthropist to join the LivingMyPromise movement in India, committing 50% of his wealth to environmental and social causes. He also serves on national committees with CII, BCCI, ICSI, and the Net Zero Coalition in India. Pratyush holds a Ph.D. in Public Policy and Administration and is a distinguished alumnus of XIMB, with a Master\'s in Sociology and an MBA in Rural Management. In 2024, he has been recognized as a LinkedIn Top Voice for Corporate Sustainability and CSR. On a personal note, he is also a passionate marathon runner.',
                                   style: Theme.of(context)
                                       .textTheme
                                       .bodyMedium
@@ -474,19 +508,34 @@ class AboutPage extends StatelessWidget {
                       desktop: Row(
                         children: [
                           Container(
-                            width: ResponsiveHelper.isMobile(context) ? 60 : 80,
-                            height:
-                                ResponsiveHelper.isMobile(context) ? 60 : 80,
+                            width: 180,
+                            height: 180,
                             decoration: BoxDecoration(
-                              color: AppTheme.primaryRed.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(
-                                  ResponsiveHelper.isMobile(context) ? 30 : 40),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
-                            child: Icon(
-                              Icons.person,
-                              color: AppTheme.primaryRed,
-                              size:
-                                  ResponsiveHelper.isMobile(context) ? 30 : 40,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.asset(
+                                '/images/about_us.jpg',
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: AppTheme.primaryRed.withOpacity(0.1),
+                                    child: const Icon(
+                                      Icons.person,
+                                      color: AppTheme.primaryRed,
+                                      size: 80,
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
                           ),
                           SizedBox(
@@ -497,7 +546,7 @@ class AboutPage extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Dr. Pratyush Kumar Panda, PhD',
+                                  'Dr. Pratyush Kumar Panda',
                                   style: Theme.of(context)
                                       .textTheme
                                       .titleLarge
@@ -541,7 +590,7 @@ class AboutPage extends StatelessWidget {
                                                 context) /
                                             2),
                                 Text(
-                                  'Featured by The Enterprise World as one of the Most Impactful & Visionary Personalities to Look for in 2025. With his forward-thinking approach and dedication, Pratyush continues to steer CPF toward enabling transparency and collaborative philanthropy across India.',
+                                  'With over two decades of leadership experience at esteemed organizations like LTIMindtree, ACC, and CARE, Pratyush is a seasoned professional in ESG, CSR, and public policy. He has catalyzed change across a variety of thematic areas, with a special focus on climate action. An ardent advocate for philanthropy, Pratyush is an ASPIRE Circle Fellow and the 88th philanthropist to join the LivingMyPromise movement in India, committing 50% of his wealth to environmental and social causes. He also serves on national committees with CII, BCCI, ICSI, and the Net Zero Coalition in India. Pratyush holds a Ph.D. in Public Policy and Administration and is a distinguished alumnus of XIMB, with a Master\'s in Sociology and an MBA in Rural Management. In 2024, he has been recognized as a LinkedIn Top Voice for Corporate Sustainability and CSR. On a personal note, he is also a passionate marathon runner.',
                                   style: Theme.of(context)
                                       .textTheme
                                       .bodyMedium
