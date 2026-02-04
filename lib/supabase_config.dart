@@ -2,8 +2,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupabaseConfig {
   // Supabase Project Configuration
-  static const String supabaseUrl = 'https://iqrdctnlggmkjokuzggi.supabase.co';
-  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlxcmRjdG5sZ2dta2pva3V6Z2dpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4Mjk0ODQsImV4cCI6MjA3NTQwNTQ4NH0.yGipp4amQABjf4EYYUT3fcEfQNIM44j9vEx-GKcY16Q';
+  static const String supabaseUrl = 'https://snicwydjepfudstduzgj.supabase.co';
+  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNuaWN3eWRqZXBmdWRzdGR1emdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NTk3MTEsImV4cCI6MjA4NTMzNTcxMX0.7ILMWRh7ofUZUhltdaOyhjZ0fOXyCovY8JgyHBhqNfs';
   
   // Supabase Client Instance
   static SupabaseClient? _client;
@@ -72,5 +72,4 @@ class SupabaseConfig {
   /// Get Supabase Realtime
   static RealtimeClient get realtime => _client!.realtime;
 }
-
 

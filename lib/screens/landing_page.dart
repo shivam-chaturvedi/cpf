@@ -844,7 +844,7 @@ class _LandingPageState extends State<LandingPage>
           SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context)),
           InlineVideoPlayer(
             videoUrl:
-                'https://iqrdctnlggmkjokuzggi.supabase.co/storage/v1/object/public/documents/our-impact.mp4',
+                'https://snicwydjepfudstduzgj.supabase.co/storage/v1/object/public/documents/our-impact.mp4',
             backgroundImagePath:
                 'assets/images/video-bg.jpg', // Optional background image
             autoPlay: false,
